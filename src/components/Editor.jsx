@@ -15,6 +15,7 @@ import {
   Edit3,
   Copy,
   Pencil,
+  CheckSquare,
 } from 'lucide-react'
 import useNotesStore from '../store/useNotesStore'
 import { formatDate } from '../lib/utils'
@@ -346,6 +347,13 @@ function Editor() {
             </ToolbarButton>
 
             <ToolbarButton
+              title="Checklist"
+              onClick={() => insertLinePrefix('- [ ] ', 'Tarea pendiente')}
+            >
+              <CheckSquare size={14} />
+            </ToolbarButton>
+
+            <ToolbarButton
               title="Lista numerada"
               onClick={() => insertLinePrefix('1. ', 'Elemento numerado')}
             >
@@ -520,6 +528,32 @@ function MarkdownPreview({ content }) {
             >
               {renderInlineMarkdown(trimmed.replace('> ', ''))}
             </blockquote>
+          )
+        }
+
+        if (trimmed.startsWith('- [ ] ')) {
+          return (
+            <div key={index} className="flex items-start gap-2 ml-1">
+              <input type="checkbox" disabled className="mt-1" />
+              <span>{renderInlineMarkdown(trimmed.replace('- [ ] ', ''))}</span>
+            </div>
+          )
+        }
+
+        if (trimmed.startsWith('- [x] ') || trimmed.startsWith('- [X] ')) {
+          return (
+            <div key={index} className="flex items-start gap-2 ml-1 text-warm-300">
+              <input
+                type="checkbox"
+                checked
+                disabled
+                readOnly
+                className="mt-1"
+              />
+              <span className="line-through">
+                {renderInlineMarkdown(trimmed.replace(/- \[[xX]\] /, ''))}
+              </span>
+            </div>
           )
         }
 
