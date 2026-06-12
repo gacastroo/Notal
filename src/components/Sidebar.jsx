@@ -1,21 +1,38 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import useNotesStore from '../store/useNotesStore'
-import { Trash2, Loader2, X, Search } from 'lucide-react'
+import {
+  Trash2,
+  Loader2,
+  X,
+  Search,
+  Keyboard,
+  ChevronDown,
+} from 'lucide-react'
 import { formatDate } from '../lib/utils'
 import { searchNotesWithAI } from '../lib/ai'
 import BackupActions from './BackupActions'
 import DeleteNoteModal from './DeleteNoteModal'
 
 function Sidebar() {
-  const { notes, activeNoteId, setActiveNote, addNote } = useNotesStore()
+  const {
+    notes,
+    activeNoteId,
+    setActiveNote,
+    addNote,
+    lastDeletedNote,
+    restoreLastDeletedNote,
+    clearLastDeletedNote,
+  } = useNotesStore()
 
   const [search, setSearch] = useState('')
   const [aiResults, setAiResults] = useState(null)
   const [isSearching, setIsSearching] = useState(false)
   const [aiError, setAiError] = useState('')
+  const [showShortcuts, setShowShortcuts] = useState(false)
 
   const abortRef = useRef(null)
   const requestIdRef = useRef(0)
+  const searchInputRef = useRef(null)
 
   const handleSearchChange = useCallback((value) => {
     setSearch(value)
@@ -41,6 +58,51 @@ function Sidebar() {
     setIsSearching(false)
     setAiError('')
   }, [])
+
+  useEffect(() => {
+    const handleKeyboardShortcuts = (event) => {
+      const key = event.key.toLowerCase()
+
+      const isSearchShortcut = (event.ctrlKey || event.metaKey) && key === 'k'
+      const isNewNoteShortcut = event.altKey && key === 'n'
+      const isEscape = event.key === 'Escape'
+
+      if (isSearchShortcut) {
+        event.preventDefault()
+        searchInputRef.current?.focus()
+        return
+      }
+
+      if (isNewNoteShortcut) {
+        event.preventDefault()
+        addNote()
+        return
+      }
+
+      if (isEscape && search) {
+        event.preventDefault()
+        clearSearch()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyboardShortcuts)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyboardShortcuts)
+    }
+  }, [addNote, clearSearch, search])
+
+  useEffect(() => {
+    if (!lastDeletedNote) return
+
+    const timeoutId = setTimeout(() => {
+      clearLastDeletedNote()
+    }, 5000)
+
+    return () => {
+      clearTimeout(timeoutId)
+    }
+  }, [lastDeletedNote, clearLastDeletedNote])
 
   const runAISearch = useCallback(async () => {
     const query = search.trim()
@@ -119,150 +181,212 @@ function Sidebar() {
   const unpinned = filtered.filter((note) => !note.pinned)
 
   return (
-    <div className="w-56 min-h-screen bg-cream-100 border-r border-warm-100 flex flex-col">
-      <div className="p-4 border-b border-warm-100">
-        <p className="text-warm-600 font-medium text-base mb-3">
-          No<span className="text-warm-300">ta</span>la
-        </p>
-
-        <button
-          onClick={addNote}
-          className="w-full bg-warm-300 text-cream-300 text-sm font-medium py-2 px-3 rounded-full flex items-center gap-2 mb-3"
-        >
-          <span className="text-lg leading-none">+</span>
-          Captura rápida
-        </button>
-
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Buscar con IA..."
-            value={search}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                runAISearch()
-              }
-            }}
-            className="w-full bg-cream-200 text-warm-500 text-sm px-3 py-2 rounded-full outline-none placeholder-warm-200 border border-warm-100 pr-16"
-          />
-
-          {search && !isSearching && (
-            <button
-              onClick={clearSearch}
-              className="absolute right-10 top-2.5 text-warm-300 hover:text-warm-500"
-              title="Limpiar búsqueda"
-            >
-              <X size={14} />
-            </button>
-          )}
+    <>
+      <div className="w-56 min-h-screen bg-cream-100 border-r border-warm-100 flex flex-col">
+        <div className="p-4 border-b border-warm-100">
+          <p className="text-warm-600 font-medium text-base mb-3">
+            No<span className="text-warm-300">ta</span>la
+          </p>
 
           <button
-            onClick={runAISearch}
-            disabled={isSearching || search.trim().length < 3}
-            className="absolute right-3 top-2.5 text-warm-300 hover:text-warm-500 disabled:opacity-40"
-            title="Buscar con IA"
+            onClick={addNote}
+            className="w-full bg-warm-300 text-cream-300 text-sm font-medium py-2 px-3 rounded-full flex items-center gap-2 mb-3"
           >
-            {isSearching ? (
-              <Loader2 size={14} className="animate-spin" />
-            ) : (
-              <Search size={14} />
-            )}
+            <span className="text-lg leading-none">+</span>
+            Captura rápida
           </button>
+
+          <div className="relative">
+            <input
+              ref={searchInputRef}
+              type="text"
+              placeholder="Buscar con IA..."
+              value={search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  runAISearch()
+                }
+              }}
+              className="w-full bg-cream-200 text-warm-500 text-sm px-3 py-2 rounded-full outline-none placeholder-warm-200 border border-warm-100 pr-16"
+            />
+
+            {search && !isSearching && (
+              <button
+                onClick={clearSearch}
+                className="absolute right-10 top-2.5 text-warm-300 hover:text-warm-500"
+                title="Limpiar búsqueda"
+              >
+                <X size={14} />
+              </button>
+            )}
+
+            <button
+              onClick={runAISearch}
+              disabled={isSearching || search.trim().length < 3}
+              className="absolute right-3 top-2.5 text-warm-300 hover:text-warm-500 disabled:opacity-40"
+              title="Buscar con IA"
+            >
+              {isSearching ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Search size={14} />
+              )}
+            </button>
+          </div>
+
+          {aiError && (
+            <p className="text-xs text-red-400 mt-2 leading-snug">
+              {aiError}
+            </p>
+          )}
+
+          {search.trim().length >= 3 && aiResults === null && !isSearching && (
+            <p className="text-xs text-warm-300 mt-2 leading-snug">
+              Pulsa Enter o el icono de búsqueda para usar IA.
+            </p>
+          )}
         </div>
 
-        {aiError && (
-          <p className="text-xs text-red-400 mt-2 leading-snug">
-            {aiError}
-          </p>
-        )}
-
-        {search.trim().length >= 3 && aiResults === null && !isSearching && (
-          <p className="text-xs text-warm-300 mt-2 leading-snug">
-            Pulsa Enter o el icono de búsqueda para usar IA.
-          </p>
-        )}
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-2">
-        {search && filtered.length === 0 && !isSearching && (
-          <p className="max-w-[180px] mx-auto text-sm leading-relaxed text-warm-400 text-center mt-8 px-4">
-            No hay notas relacionadas
-          </p>
-        )}
-
-        {isSearching && (
-          <p className="text-xs text-warm-300 px-2 py-2 flex items-center gap-1">
-            <Loader2 size={12} className="animate-spin" />
-            Buscando con IA...
-          </p>
-        )}
-
-        {aiResults !== null && filtered.length > 0 && !isSearching && (
-          <p className="text-xs text-warm-300 px-2 py-2 flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block"></span>
-            {filtered.length} resultado{filtered.length !== 1 ? 's' : ''} con
-            IA
-          </p>
-        )}
-
-        {search && aiResults === null && filtered.length > 0 && !isSearching && (
-          <p className="text-xs text-warm-300 px-2 py-2">
-            Resultados por texto
-          </p>
-        )}
-
-        {pinned.length > 0 && (
-          <>
-            <p className="text-xs text-warm-400 uppercase tracking-wider px-2 py-2">
-              Fijadas
+        <div className="flex-1 overflow-y-auto p-2">
+          {search && filtered.length === 0 && !isSearching && (
+            <p className="max-w-[180px] mx-auto text-sm leading-relaxed text-warm-400 text-center mt-8 px-4">
+              No hay notas relacionadas
             </p>
+          )}
 
-            {pinned.map((note) => (
-              <NoteItem
-                key={note.id}
-                note={note}
-                active={note.id === activeNoteId}
-                onClick={() => setActiveNote(note.id)}
-              />
-            ))}
-          </>
-        )}
-
-        {unpinned.length > 0 && (
-          <>
-            <p className="text-xs text-warm-400 uppercase tracking-wider px-2 py-2">
-              {search ? 'Resultados' : 'Todas'}
+          {isSearching && (
+            <p className="text-xs text-warm-300 px-2 py-2 flex items-center gap-1">
+              <Loader2 size={12} className="animate-spin" />
+              Buscando con IA...
             </p>
+          )}
 
-            {unpinned.map((note) => (
-              <NoteItem
-                key={note.id}
-                note={note}
-                active={note.id === activeNoteId}
-                onClick={() => setActiveNote(note.id)}
+          {aiResults !== null && filtered.length > 0 && !isSearching && (
+            <p className="text-xs text-warm-300 px-2 py-2 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block"></span>
+              {filtered.length} resultado{filtered.length !== 1 ? 's' : ''} con
+              IA
+            </p>
+          )}
+
+          {search &&
+            aiResults === null &&
+            filtered.length > 0 &&
+            !isSearching && (
+              <p className="text-xs text-warm-300 px-2 py-2">
+                Resultados por texto
+              </p>
+            )}
+
+          {pinned.length > 0 && (
+            <>
+              <p className="text-xs text-warm-400 uppercase tracking-wider px-2 py-2">
+                Fijadas
+              </p>
+
+              {pinned.map((note) => (
+                <NoteItem
+                  key={note.id}
+                  note={note}
+                  active={note.id === activeNoteId}
+                  onClick={() => setActiveNote(note.id)}
+                />
+              ))}
+            </>
+          )}
+
+          {unpinned.length > 0 && (
+            <>
+              <p className="text-xs text-warm-400 uppercase tracking-wider px-2 py-2">
+                {search ? 'Resultados' : 'Todas'}
+              </p>
+
+              {unpinned.map((note) => (
+                <NoteItem
+                  key={note.id}
+                  note={note}
+                  active={note.id === activeNoteId}
+                  onClick={() => setActiveNote(note.id)}
+                />
+              ))}
+            </>
+          )}
+
+          {notes.length === 0 && (
+            <p className="max-w-[180px] mx-auto text-sm leading-relaxed text-warm-400 text-center mt-8 px-4">
+              Aún no tienes notas.
+              <br />
+              ¡Crea una!
+            </p>
+          )}
+        </div>
+
+        <div className="p-3 border-t border-warm-100 space-y-3">
+          <div className="bg-cream-200 border border-warm-100 rounded-xl overflow-hidden">
+            <button
+              onClick={() => setShowShortcuts((current) => !current)}
+              className="w-full px-3 py-2 flex items-center justify-between text-xs text-warm-400 hover:bg-cream-300"
+            >
+              <span className="flex items-center gap-1 font-medium">
+                <Keyboard size={13} />
+                Atajos rápidos
+              </span>
+
+              <ChevronDown
+                size={14}
+                className={`transition-transform ${
+                  showShortcuts ? 'rotate-180' : ''
+                }`}
               />
-            ))}
-          </>
-        )}
+            </button>
 
-        {notes.length === 0 && (
-          <p className="max-w-[180px] mx-auto text-sm leading-relaxed text-warm-400 text-center mt-8 px-4">
-            Aún no tienes notas.
-            <br />
-            ¡Crea una!
+            {showShortcuts && (
+              <div className="px-3 pb-3 pt-1 text-[11px] text-warm-300 space-y-1">
+                <p className="flex justify-between gap-2">
+                  <span>Buscar</span>
+                  <span className="font-medium text-warm-400">Ctrl + K</span>
+                </p>
+
+                <p className="flex justify-between gap-2">
+                  <span>Nueva nota</span>
+                  <span className="font-medium text-warm-400">Alt + N</span>
+                </p>
+
+                <p className="flex justify-between gap-2">
+                  <span>Limpiar búsqueda</span>
+                  <span className="font-medium text-warm-400">Esc</span>
+                </p>
+              </div>
+            )}
+          </div>
+
+          <BackupActions />
+
+          <p className="text-xs text-warm-400 text-center">
+            {notes.length} {notes.length === 1 ? 'nota' : 'notas'}
           </p>
-        )}
+        </div>
       </div>
 
-      <div className="p-3 border-t border-warm-100 space-y-3">
-        <BackupActions />
+      {lastDeletedNote && (
+        <div className="fixed bottom-5 right-5 z-50 bg-warm-600 text-cream-100 rounded-2xl shadow-xl px-4 py-3 flex items-center gap-3">
+          <div>
+            <p className="text-sm font-medium">Nota eliminada</p>
+            <p className="text-xs text-cream-200 max-w-[180px] truncate">
+              {lastDeletedNote.title || 'Sin título'}
+            </p>
+          </div>
 
-        <p className="text-xs text-warm-400 text-center">
-          {notes.length} {notes.length === 1 ? 'nota' : 'notas'}
-        </p>
-      </div>
-    </div>
+          <button
+            onClick={restoreLastDeletedNote}
+            className="text-xs bg-cream-100 text-warm-600 px-3 py-1.5 rounded-full font-medium hover:bg-cream-200"
+          >
+            Deshacer
+          </button>
+        </div>
+      )}
+    </>
   )
 }
 
