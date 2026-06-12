@@ -14,9 +14,11 @@ import {
   Eye,
   Edit3,
   Copy,
+  Pencil,
 } from 'lucide-react'
 import useNotesStore from '../store/useNotesStore'
 import { formatDate } from '../lib/utils'
+import RenameTagModal from './RenameTagModal'
 
 function Editor() {
   const {
@@ -25,6 +27,8 @@ function Editor() {
     deleteNote,
     togglePin,
     duplicateNote,
+    renameTag,
+    addNote,
   } = useNotesStore()
 
   const note = getActiveNote()
@@ -36,6 +40,7 @@ function Editor() {
   const [tagInput, setTagInput] = useState('')
   const [isPreview, setIsPreview] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [tagBeingRenamed, setTagBeingRenamed] = useState(null)
 
   useEffect(() => {
     if (note) {
@@ -44,22 +49,32 @@ function Editor() {
       setTagInput('')
       setIsPreview(false)
       setShowDeleteModal(false)
+      setTagBeingRenamed(null)
     }
   }, [note?.id])
 
   if (!note) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-cream-50 gap-3 px-6">
-        <p className="text-5xl">📓</p>
+      <div className="flex-1 flex flex-col items-center justify-center bg-cream-50 px-6">
+        <div className="bg-cream-100 border border-warm-100 rounded-3xl shadow-sm p-8 max-w-sm w-full text-center">
+          <p className="text-5xl mb-4">📓</p>
 
-        <p className="text-warm-500 font-medium text-lg">
-          Bienvenido a Notala
-        </p>
+          <h1 className="text-warm-600 font-semibold text-xl mb-2">
+            Bienvenido a Notala
+          </h1>
 
-        <p className="text-warm-300 text-sm text-center max-w-xs leading-relaxed">
-          Captura ideas, tareas, apuntes y notas profesionales en un espacio
-          simple y fácil de usar.
-        </p>
+          <p className="text-warm-300 text-sm leading-relaxed mb-5">
+            Captura ideas, tareas, apuntes y notas profesionales en un espacio
+            simple y fácil de usar.
+          </p>
+
+          <button
+            onClick={addNote}
+            className="bg-warm-300 text-cream-300 text-sm font-medium py-2.5 px-5 rounded-full hover:opacity-90"
+          >
+            Crear nueva nota
+          </button>
+        </div>
       </div>
     )
   }
@@ -139,8 +154,7 @@ function Editor() {
 
     const newText = `${needsLineBreakBefore}${prefix}${textToInsert}${needsLineBreakAfter}`
 
-    const newContent =
-      content.slice(0, start) + newText + content.slice(end)
+    const newContent = content.slice(0, start) + newText + content.slice(end)
 
     updateContent(newContent)
 
@@ -176,6 +190,13 @@ function Editor() {
     updateNote(note.id, {
       tags: tags.filter((tag) => tag !== tagToRemove),
     })
+  }
+
+  const handleRenameTag = (newTagName) => {
+    if (!tagBeingRenamed) return
+
+    renameTag(tagBeingRenamed, newTagName)
+    setTagBeingRenamed(null)
   }
 
   const handleTextareaKeyDown = (e) => {
@@ -267,8 +288,17 @@ function Editor() {
               {tag}
 
               <button
+                onClick={() => setTagBeingRenamed(tag)}
+                className="text-warm-400 hover:text-warm-600"
+                title="Renombrar etiqueta"
+              >
+                <Pencil size={10} />
+              </button>
+
+              <button
                 onClick={() => handleRemoveTag(tag)}
                 className="text-warm-400 hover:text-red-400"
+                title="Quitar etiqueta de esta nota"
               >
                 <X size={10} />
               </button>
@@ -410,6 +440,14 @@ function Editor() {
             </div>
           </div>
         </div>
+      )}
+
+      {tagBeingRenamed && (
+        <RenameTagModal
+          tag={tagBeingRenamed}
+          onCancel={() => setTagBeingRenamed(null)}
+          onConfirm={handleRenameTag}
+        />
       )}
     </div>
   )
