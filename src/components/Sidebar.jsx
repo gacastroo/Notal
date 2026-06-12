@@ -1,5 +1,5 @@
-import { useState, useCallback, useRef, useEffect } from "react";
-import useNotesStore from "../store/useNotesStore";
+import { useState, useCallback, useRef, useEffect } from 'react'
+import useNotesStore from '../store/useNotesStore'
 import {
   Trash2,
   Loader2,
@@ -8,11 +8,13 @@ import {
   Keyboard,
   ChevronDown,
   Tag,
-} from "lucide-react";
-import { formatDate } from "../lib/utils";
-import { searchNotesWithAI } from "../lib/ai";
-import BackupActions from "./BackupActions";
-import DeleteNoteModal from "./DeleteNoteModal";
+  Pencil,
+} from 'lucide-react'
+import { formatDate } from '../lib/utils'
+import { searchNotesWithAI } from '../lib/ai'
+import BackupActions from './BackupActions'
+import DeleteNoteModal from './DeleteNoteModal'
+import RenameTagModal from './RenameTagModal'
 
 function Sidebar() {
   const {
@@ -23,196 +25,211 @@ function Sidebar() {
     lastDeletedNote,
     restoreLastDeletedNote,
     clearLastDeletedNote,
-  } = useNotesStore();
+    renameTag,
+  } = useNotesStore()
 
-  const [search, setSearch] = useState("");
-  const [aiResults, setAiResults] = useState(null);
-  const [isSearching, setIsSearching] = useState(false);
-  const [aiError, setAiError] = useState("");
-  const [showShortcuts, setShowShortcuts] = useState(false);
-  const [showTags, setShowTags] = useState(false);
-  const [selectedTag, setSelectedTag] = useState("");
-  const [sortMode, setSortMode] = useState("updated-desc");
+  const [search, setSearch] = useState('')
+  const [aiResults, setAiResults] = useState(null)
+  const [isSearching, setIsSearching] = useState(false)
+  const [aiError, setAiError] = useState('')
+  const [showShortcuts, setShowShortcuts] = useState(false)
+  const [showTags, setShowTags] = useState(false)
+  const [selectedTag, setSelectedTag] = useState('')
+  const [tagBeingRenamed, setTagBeingRenamed] = useState(null)
+  const [sortMode, setSortMode] = useState('updated-desc')
 
-  const abortRef = useRef(null);
-  const requestIdRef = useRef(0);
-  const searchInputRef = useRef(null);
+  const abortRef = useRef(null)
+  const requestIdRef = useRef(0)
+  const searchInputRef = useRef(null)
 
   const allTags = [
     ...new Set(
-      notes.flatMap((note) => (Array.isArray(note.tags) ? note.tags : [])),
+      notes.flatMap((note) => (Array.isArray(note.tags) ? note.tags : []))
     ),
-  ].sort();
+  ].sort()
 
   const handleSearchChange = useCallback((value) => {
-    setSearch(value);
-    setAiResults(null);
-    setAiError("");
+    setSearch(value)
+    setAiResults(null)
+    setAiError('')
 
     if (abortRef.current) {
-      abortRef.current.abort();
-      abortRef.current = null;
+      abortRef.current.abort()
+      abortRef.current = null
     }
-  }, []);
+  }, [])
 
   const clearSearch = useCallback(() => {
     if (abortRef.current) {
-      abortRef.current.abort();
-      abortRef.current = null;
+      abortRef.current.abort()
+      abortRef.current = null
     }
 
-    requestIdRef.current += 1;
+    requestIdRef.current += 1
 
-    setSearch("");
-    setAiResults(null);
-    setIsSearching(false);
-    setAiError("");
-  }, []);
+    setSearch('')
+    setAiResults(null)
+    setIsSearching(false)
+    setAiError('')
+  }, [])
 
   useEffect(() => {
     const handleKeyboardShortcuts = (event) => {
-      const key = event.key.toLowerCase();
+      const key = event.key.toLowerCase()
 
-      const isSearchShortcut = (event.ctrlKey || event.metaKey) && key === "k";
-      const isNewNoteShortcut = event.altKey && key === "n";
-      const isEscape = event.key === "Escape";
+      const isSearchShortcut = (event.ctrlKey || event.metaKey) && key === 'k'
+      const isNewNoteShortcut = event.altKey && key === 'n'
+      const isEscape = event.key === 'Escape'
 
       if (isSearchShortcut) {
-        event.preventDefault();
-        searchInputRef.current?.focus();
-        return;
+        event.preventDefault()
+        searchInputRef.current?.focus()
+        return
       }
 
       if (isNewNoteShortcut) {
-        event.preventDefault();
-        addNote();
-        return;
+        event.preventDefault()
+        addNote()
+        return
       }
 
       if (isEscape && search) {
-        event.preventDefault();
-        clearSearch();
+        event.preventDefault()
+        clearSearch()
       }
-    };
+    }
 
-    window.addEventListener("keydown", handleKeyboardShortcuts);
+    window.addEventListener('keydown', handleKeyboardShortcuts)
 
     return () => {
-      window.removeEventListener("keydown", handleKeyboardShortcuts);
-    };
-  }, [addNote, clearSearch, search]);
+      window.removeEventListener('keydown', handleKeyboardShortcuts)
+    }
+  }, [addNote, clearSearch, search])
 
   useEffect(() => {
-    if (!lastDeletedNote) return;
+    if (!lastDeletedNote) return
 
     const timeoutId = setTimeout(() => {
-      clearLastDeletedNote();
-    }, 5000);
+      clearLastDeletedNote()
+    }, 5000)
 
     return () => {
-      clearTimeout(timeoutId);
-    };
-  }, [lastDeletedNote, clearLastDeletedNote]);
+      clearTimeout(timeoutId)
+    }
+  }, [lastDeletedNote, clearLastDeletedNote])
 
   const runAISearch = useCallback(async () => {
-    const query = search.trim();
+    const query = search.trim()
 
     if (!query || query.length < 3) {
-      return;
+      return
     }
 
     if (abortRef.current) {
-      abortRef.current.abort();
+      abortRef.current.abort()
     }
 
-    const controller = new AbortController();
-    abortRef.current = controller;
+    const controller = new AbortController()
+    abortRef.current = controller
 
-    const requestId = requestIdRef.current + 1;
-    requestIdRef.current = requestId;
+    const requestId = requestIdRef.current + 1
+    requestIdRef.current = requestId
 
-    setIsSearching(true);
-    setAiError("");
+    setIsSearching(true)
+    setAiError('')
 
     try {
       const results = await searchNotesWithAI(query, notes, {
         signal: controller.signal,
-      });
+      })
 
       if (requestId !== requestIdRef.current) {
-        return;
+        return
       }
 
-      setAiResults(results);
+      setAiResults(results)
     } catch (error) {
-      if (error.name === "AbortError") {
-        return;
+      if (error.name === 'AbortError') {
+        return
       }
 
       if (requestId !== requestIdRef.current) {
-        return;
+        return
       }
 
-      console.error("Error en búsqueda IA:", error);
+      console.error('Error en búsqueda IA:', error)
 
-      const message = String(error.message || "");
+      const message = String(error.message || '')
 
-      if (message.includes("429")) {
+      if (message.includes('429')) {
         setAiError(
-          "Límite gratuito de IA alcanzado. Prueba de nuevo más tarde.",
-        );
+          'Límite gratuito de IA alcanzado. Prueba de nuevo más tarde.'
+        )
       } else {
         setAiError(
-          "No se pudo buscar con IA. Se mantiene la búsqueda por texto.",
-        );
+          'No se pudo buscar con IA. Se mantiene la búsqueda por texto.'
+        )
       }
 
-      setAiResults(null);
+      setAiResults(null)
     } finally {
       if (requestId === requestIdRef.current) {
-        setIsSearching(false);
+        setIsSearching(false)
       }
     }
-  }, [search, notes]);
+  }, [search, notes])
 
   const searchedNotes =
     aiResults !== null
       ? aiResults
       : notes.filter((note) => {
-          const q = search.toLowerCase();
+          const q = search.toLowerCase()
 
           return (
-            (note.title || "").toLowerCase().includes(q) ||
-            (note.content || "").toLowerCase().includes(q)
-          );
-        });
+            (note.title || '').toLowerCase().includes(q) ||
+            (note.content || '').toLowerCase().includes(q)
+          )
+        })
 
   const filtered = selectedTag
     ? searchedNotes.filter(
-        (note) => Array.isArray(note.tags) && note.tags.includes(selectedTag),
+        (note) => Array.isArray(note.tags) && note.tags.includes(selectedTag)
       )
-    : searchedNotes;
+    : searchedNotes
 
   const sortNotes = (notesToSort) => {
     return [...notesToSort].sort((a, b) => {
-      if (sortMode === "updated-asc") {
-        return new Date(a.updatedAt) - new Date(b.updatedAt);
+      if (sortMode === 'updated-asc') {
+        return new Date(a.updatedAt) - new Date(b.updatedAt)
       }
 
-      if (sortMode === "title-asc") {
-        return (a.title || "Sin título").localeCompare(
-          b.title || "Sin título",
-          "es",
-          { sensitivity: "base" },
-        );
+      if (sortMode === 'title-asc') {
+        return (a.title || 'Sin título').localeCompare(
+          b.title || 'Sin título',
+          'es',
+          { sensitivity: 'base' }
+        )
       }
 
-      return new Date(b.updatedAt) - new Date(a.updatedAt);
-    });
-  };
+      return new Date(b.updatedAt) - new Date(a.updatedAt)
+    })
+  }
 
-  const pinned = sortNotes(filtered.filter((note) => note.pinned));
-  const unpinned = sortNotes(filtered.filter((note) => !note.pinned));
+  const pinned = sortNotes(filtered.filter((note) => note.pinned))
+  const unpinned = sortNotes(filtered.filter((note) => !note.pinned))
+
+  const handleRenameTag = (newTagName) => {
+    if (!tagBeingRenamed) return
+
+    renameTag(tagBeingRenamed, newTagName)
+
+    if (selectedTag === tagBeingRenamed) {
+      setSelectedTag(newTagName)
+    }
+
+    setTagBeingRenamed(null)
+  }
+
   return (
     <>
       <div className="w-56 min-h-screen bg-cream-100 border-r border-warm-100 flex flex-col">
@@ -237,8 +254,8 @@ function Sidebar() {
               value={search}
               onChange={(e) => handleSearchChange(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  runAISearch();
+                if (e.key === 'Enter') {
+                  runAISearch()
                 }
               }}
               className="w-full bg-cream-200 text-warm-500 text-sm px-3 py-2 rounded-full outline-none placeholder-warm-200 border border-warm-100 pr-16"
@@ -269,7 +286,9 @@ function Sidebar() {
           </div>
 
           {aiError && (
-            <p className="text-xs text-red-400 mt-2 leading-snug">{aiError}</p>
+            <p className="text-xs text-red-400 mt-2 leading-snug">
+              {aiError}
+            </p>
           )}
 
           {search.trim().length >= 3 && aiResults === null && !isSearching && (
@@ -286,13 +305,13 @@ function Sidebar() {
               >
                 <span className="flex items-center gap-1 font-medium">
                   <Tag size={13} />
-                  {selectedTag ? `Etiqueta: ${selectedTag}` : "Etiquetas"}
+                  {selectedTag ? `Etiqueta: ${selectedTag}` : 'Etiquetas'}
                 </span>
 
                 <ChevronDown
                   size={14}
                   className={`transition-transform ${
-                    showTags ? "rotate-180" : ""
+                    showTags ? 'rotate-180' : ''
                   }`}
                 />
               </button>
@@ -301,62 +320,79 @@ function Sidebar() {
                 <div className="px-3 pb-3 pt-1 space-y-1">
                   <button
                     onClick={() => {
-                      setSelectedTag("");
-                      setShowTags(false);
+                      setSelectedTag('')
+                      setShowTags(false)
                     }}
                     className={`w-full text-left text-xs rounded-lg px-2 py-1.5 ${
                       !selectedTag
-                        ? "bg-cream-300 text-warm-600 font-medium"
-                        : "text-warm-400 hover:bg-cream-300"
+                        ? 'bg-cream-300 text-warm-600 font-medium'
+                        : 'text-warm-400 hover:bg-cream-300'
                     }`}
                   >
                     Todas las notas
                   </button>
 
                   {allTags.map((tag) => (
-                    <button
+                    <div
                       key={tag}
-                      onClick={() => {
-                        setSelectedTag(tag);
-                        setShowTags(false);
-                      }}
-                      className={`w-full text-left text-xs rounded-lg px-2 py-1.5 ${
-                        selectedTag === tag
-                          ? "bg-cream-300 text-warm-600 font-medium"
-                          : "text-warm-400 hover:bg-cream-300"
+                      className={`flex items-center gap-1 rounded-lg ${
+                        selectedTag === tag ? 'bg-cream-300' : 'hover:bg-cream-300'
                       }`}
                     >
-                      #{tag}
-                    </button>
+                      <button
+                        onClick={() => {
+                          setSelectedTag(tag)
+                          setShowTags(false)
+                        }}
+                        className={`flex-1 text-left text-xs px-2 py-1.5 ${
+                          selectedTag === tag
+                            ? 'text-warm-600 font-medium'
+                            : 'text-warm-400'
+                        }`}
+                      >
+                        #{tag}
+                      </button>
+
+                      <button
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          setTagBeingRenamed(tag)
+                        }}
+                        className="w-7 h-7 flex items-center justify-center text-warm-300 hover:text-warm-600"
+                        title="Renombrar etiqueta"
+                      >
+                        <Pencil size={12} />
+                      </button>
+                    </div>
                   ))}
                 </div>
               )}
             </div>
           )}
-        </div>
 
-        <div className="mt-3 p-3">
-          <label className="block text-[11px] text-warm-300 font-medium mb-1.5">
-            Ordenar por
-          </label>
+          <div className="mt-3 bg-cream-200 border border-warm-100 rounded-xl p-3">
+            <label className="block text-[11px] text-warm-300 font-medium mb-1.5">
+              Ordenar por
+            </label>
 
-          <select
-            value={sortMode}
-            onChange={(e) => setSortMode(e.target.value)}
-            className="w-full  text-warm-500 text-xs border border-warm-100 rounded-lg px-3 py-2.5 outline-none cursor-pointer"
-          >
-            <option value="updated-desc">Última actualización</option>
-            <option value="updated-asc">Más antiguas primero</option>
-            <option value="title-asc">Título A-Z</option>
-          </select>
+            <select
+              value={sortMode}
+              onChange={(e) => setSortMode(e.target.value)}
+              className="w-full bg-cream-100 text-warm-500 text-xs border border-warm-100 rounded-lg px-3 py-2.5 outline-none cursor-pointer"
+            >
+              <option value="updated-desc">Última actualización</option>
+              <option value="updated-asc">Más antiguas primero</option>
+              <option value="title-asc">Título A-Z</option>
+            </select>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-2">
           {(search || selectedTag) && filtered.length === 0 && !isSearching && (
             <p className="max-w-[180px] mx-auto text-sm leading-relaxed text-warm-400 text-center mt-8 px-4">
               {selectedTag
-                ? "No hay notas con esta etiqueta"
-                : "No hay notas relacionadas"}
+                ? 'No hay notas con esta etiqueta'
+                : 'No hay notas relacionadas'}
             </p>
           )}
 
@@ -370,7 +406,7 @@ function Sidebar() {
           {aiResults !== null && filtered.length > 0 && !isSearching && (
             <p className="text-xs text-warm-300 px-2 py-2 flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block"></span>
-              {filtered.length} resultado{filtered.length !== 1 ? "s" : ""} con
+              {filtered.length} resultado{filtered.length !== 1 ? 's' : ''} con
               IA
             </p>
           )}
@@ -404,7 +440,7 @@ function Sidebar() {
           {unpinned.length > 0 && (
             <>
               <p className="text-xs text-warm-400 uppercase tracking-wider px-2 py-2">
-                {search || selectedTag ? "Resultados" : "Todas"}
+                {search || selectedTag ? 'Resultados' : 'Todas'}
               </p>
 
               {unpinned.map((note) => (
@@ -441,7 +477,7 @@ function Sidebar() {
               <ChevronDown
                 size={14}
                 className={`transition-transform ${
-                  showShortcuts ? "rotate-180" : ""
+                  showShortcuts ? 'rotate-180' : ''
                 }`}
               />
             </button>
@@ -469,7 +505,7 @@ function Sidebar() {
           <BackupActions />
 
           <p className="text-xs text-warm-400 text-center">
-            {notes.length} {notes.length === 1 ? "nota" : "notas"}
+            {notes.length} {notes.length === 1 ? 'nota' : 'notas'}
           </p>
         </div>
       </div>
@@ -479,7 +515,7 @@ function Sidebar() {
           <div>
             <p className="text-sm font-medium">Nota eliminada</p>
             <p className="text-xs text-cream-200 max-w-[180px] truncate">
-              {lastDeletedNote.title || "Sin título"}
+              {lastDeletedNote.title || 'Sin título'}
             </p>
           </div>
 
@@ -491,43 +527,51 @@ function Sidebar() {
           </button>
         </div>
       )}
+
+      {tagBeingRenamed && (
+        <RenameTagModal
+          tag={tagBeingRenamed}
+          onCancel={() => setTagBeingRenamed(null)}
+          onConfirm={handleRenameTag}
+        />
+      )}
     </>
-  );
+  )
 }
 
 const TAG_COLORS = [
-  "bg-amber-100 text-amber-700",
-  "bg-teal-100 text-teal-700",
-  "bg-rose-100 text-rose-700",
-  "bg-blue-100 text-blue-700",
-  "bg-purple-100 text-purple-700",
-  "bg-green-100 text-green-700",
-];
+  'bg-amber-100 text-amber-700',
+  'bg-teal-100 text-teal-700',
+  'bg-rose-100 text-rose-700',
+  'bg-blue-100 text-blue-700',
+  'bg-purple-100 text-purple-700',
+  'bg-green-100 text-green-700',
+]
 
 const getTagColor = (tag) => {
-  const safeTag = String(tag || "nota");
-  const index = safeTag.charCodeAt(0) % TAG_COLORS.length;
+  const safeTag = String(tag || 'nota')
+  const index = safeTag.charCodeAt(0) % TAG_COLORS.length
 
-  return TAG_COLORS[index];
-};
+  return TAG_COLORS[index]
+}
 
 function NoteItem({ note, active, onClick }) {
-  const { deleteNote } = useNotesStore();
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const { deleteNote } = useNotesStore()
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
 
   const handleDeleteClick = (e) => {
-    e.stopPropagation();
-    setShowDeleteModal(true);
-  };
+    e.stopPropagation()
+    setShowDeleteModal(true)
+  }
 
   const handleCancelDelete = () => {
-    setShowDeleteModal(false);
-  };
+    setShowDeleteModal(false)
+  }
 
   const handleConfirmDelete = () => {
-    deleteNote(note.id);
-    setShowDeleteModal(false);
-  };
+    deleteNote(note.id)
+    setShowDeleteModal(false)
+  }
 
   return (
     <>
@@ -535,17 +579,17 @@ function NoteItem({ note, active, onClick }) {
         onClick={onClick}
         className={`group px-3 py-2 rounded-lg cursor-pointer mb-1 flex items-start justify-between gap-1 ${
           active
-            ? "bg-cream-300 text-warm-600"
-            : "text-warm-500 hover:bg-cream-200"
+            ? 'bg-cream-300 text-warm-600'
+            : 'text-warm-500 hover:bg-cream-200'
         }`}
       >
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">
-            {note.title || "Sin título"}
+            {note.title || 'Sin título'}
           </p>
 
           <p className="text-xs text-warm-400 truncate mt-0.5">
-            {note.content || "Nota vacía"}
+            {note.content || 'Nota vacía'}
           </p>
 
           <p className="text-xs text-warm-200 mt-0.5">
@@ -558,7 +602,7 @@ function NoteItem({ note, active, onClick }) {
                 <span
                   key={tag}
                   className={`text-xs px-2 py-0.5 rounded-full ${getTagColor(
-                    tag,
+                    tag
                   )}`}
                 >
                   {tag}
@@ -585,7 +629,7 @@ function NoteItem({ note, active, onClick }) {
         />
       )}
     </>
-  );
+  )
 }
 
-export default Sidebar;
+export default Sidebar
