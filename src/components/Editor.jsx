@@ -1,105 +1,252 @@
-import { useEffect, useState } from "react";
-import { X } from "lucide-react";
-import useNotesStore from "../store/useNotesStore";
-import { formatDate } from "../lib/utils";
+import { useEffect, useRef, useState } from 'react'
+import {
+  X,
+  Pin,
+  PinOff,
+  Trash2,
+  Bold,
+  Heading1,
+  Heading2,
+  List,
+  ListOrdered,
+  Quote,
+  Minus,
+  Eye,
+  Edit3,
+} from 'lucide-react'
+import useNotesStore from '../store/useNotesStore'
+import { formatDate } from '../lib/utils'
 
 function Editor() {
-  const { getActiveNote, updateNote, deleteNote, togglePin } = useNotesStore();
-  const note = getActiveNote();
+  const { getActiveNote, updateNote, deleteNote, togglePin } = useNotesStore()
 
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [tagInput, setTagInput] = useState("");
+  const note = getActiveNote()
+
+  const textareaRef = useRef(null)
+
+  const [title, setTitle] = useState('')
+  const [content, setContent] = useState('')
+  const [tagInput, setTagInput] = useState('')
+  const [isPreview, setIsPreview] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
 
   useEffect(() => {
     if (note) {
-      setTitle(note.title);
-      setContent(note.content);
-      setTagInput("");
+      setTitle(note.title || '')
+      setContent(note.content || '')
+      setTagInput('')
+      setIsPreview(false)
+      setShowDeleteModal(false)
     }
-  }, [note?.id]);
+  }, [note?.id])
 
   if (!note) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-cream-50 gap-3">
-        <p className="text-4xl">📓</p>
-        <p className="text-warm-500 font-medium">Bienvenido a Notala</p>
-        <p className="text-warm-300 text-sm text-center max-w-xs">
-          Captura tus ideas, tareas y notas profesionales en un solo lugar.
+      <div className="flex-1 flex flex-col items-center justify-center bg-cream-50 gap-3 px-6">
+        <p className="text-5xl">📓</p>
+
+        <p className="text-warm-500 font-medium text-lg">
+          Bienvenido a Notala
+        </p>
+
+        <p className="text-warm-300 text-sm text-center max-w-xs leading-relaxed">
+          Captura ideas, tareas, apuntes y notas profesionales en un espacio
+          simple y fácil de usar.
         </p>
       </div>
-    );
+    )
   }
 
+  const tags = Array.isArray(note.tags) ? note.tags : []
+
+  const wordCount = content
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean).length
+
   const handleTitleChange = (e) => {
-    setTitle(e.target.value);
-    updateNote(note.id, { title: e.target.value });
-  };
+    const value = e.target.value
+
+    setTitle(value)
+    updateNote(note.id, { title: value })
+  }
 
   const handleContentChange = (e) => {
-    setContent(e.target.value);
-    updateNote(note.id, { content: e.target.value });
-  };
+    const value = e.target.value
+
+    setContent(value)
+    updateNote(note.id, { content: value })
+  }
+
+  const updateContent = (value) => {
+    setContent(value)
+    updateNote(note.id, { content: value })
+  }
+
+  const insertText = (before, after = '', placeholder = '') => {
+    const textarea = textareaRef.current
+
+    if (!textarea) return
+
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+
+    const selectedText = content.slice(start, end)
+    const textToInsert = selectedText || placeholder
+
+    const newContent =
+      content.slice(0, start) +
+      before +
+      textToInsert +
+      after +
+      content.slice(end)
+
+    updateContent(newContent)
+
+    requestAnimationFrame(() => {
+      textarea.focus()
+
+      const cursorStart = start + before.length
+      const cursorEnd = cursorStart + textToInsert.length
+
+      textarea.setSelectionRange(cursorStart, cursorEnd)
+    })
+  }
+
+  const insertLinePrefix = (prefix, placeholder = '') => {
+    const textarea = textareaRef.current
+
+    if (!textarea) return
+
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+
+    const selectedText = content.slice(start, end)
+    const textToInsert = selectedText || placeholder
+
+    const needsLineBreakBefore =
+      start > 0 && content[start - 1] !== '\n' ? '\n' : ''
+
+    const needsLineBreakAfter =
+      end < content.length && content[end] !== '\n' ? '\n' : ''
+
+    const newText = `${needsLineBreakBefore}${prefix}${textToInsert}${needsLineBreakAfter}`
+
+    const newContent =
+      content.slice(0, start) + newText + content.slice(end)
+
+    updateContent(newContent)
+
+    requestAnimationFrame(() => {
+      textarea.focus()
+
+      const cursorStart = start + needsLineBreakBefore.length + prefix.length
+      const cursorEnd = cursorStart + textToInsert.length
+
+      textarea.setSelectionRange(cursorStart, cursorEnd)
+    })
+  }
 
   const handleAddTag = (e) => {
-    if (e.key === "Enter" && tagInput.trim()) {
-      const newTag =
-        tagInput.trim().charAt(0).toUpperCase() +
-        tagInput.trim().slice(1).toLowerCase();
-      if (!note.tags.includes(newTag)) {
-        updateNote(note.id, { tags: [...note.tags, newTag] });
-      }
-      setTagInput("");
-    }
-  };
+    if (e.key !== 'Enter' && e.key !== ',') return
 
-  const handleRemoveTag = (tag) => {
-    updateNote(note.id, { tags: note.tags.filter((t) => t !== tag) });
-  };
+    e.preventDefault()
+
+    const newTag = tagInput.trim().toLowerCase()
+
+    if (!newTag) return
+
+    if (!tags.includes(newTag)) {
+      updateNote(note.id, {
+        tags: [...tags, newTag],
+      })
+    }
+
+    setTagInput('')
+  }
+
+  const handleRemoveTag = (tagToRemove) => {
+    updateNote(note.id, {
+      tags: tags.filter((tag) => tag !== tagToRemove),
+    })
+  }
+
+  const handleTextareaKeyDown = (e) => {
+    const isBoldShortcut =
+      (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b'
+
+    if (isBoldShortcut) {
+      e.preventDefault()
+      insertText('**', '**', 'texto en negrita')
+    }
+
+    if (e.key === 'Tab') {
+      e.preventDefault()
+      insertText('  ')
+    }
+  }
+
+  const handleDeleteConfirm = () => {
+    deleteNote(note.id)
+    setShowDeleteModal(false)
+  }
 
   return (
-    <div className="flex-1 flex flex-col bg-cream-50">
-      <div className="flex items-center justify-between px-6 py-3 border-b border-warm-100">
+    <div className="flex-1 flex flex-col bg-cream-50 relative">
+      <div className="flex items-center justify-between px-6 py-3 border-b border-warm-100 bg-cream-50">
+        <div className="flex gap-2">
+          <button
+            onClick={() => setIsPreview((current) => !current)}
+            className="text-sm px-3 py-1 rounded-full border border-warm-100 text-warm-400 hover:text-warm-600 hover:border-warm-200 flex items-center gap-1"
+          >
+            {isPreview ? <Edit3 size={13} /> : <Eye size={13} />}
+            {isPreview ? 'Editar' : 'Vista'}
+          </button>
+
+          <button
+            onClick={() => togglePin(note.id)}
+            className={`text-sm px-3 py-1 rounded-full border flex items-center gap-1 ${
+              note.pinned
+                ? 'border-warm-300 text-warm-300'
+                : 'border-warm-100 text-warm-400 hover:text-warm-600 hover:border-warm-200'
+            }`}
+          >
+            {note.pinned ? <PinOff size={13} /> : <Pin size={13} />}
+            {note.pinned ? 'Fijada' : 'Fijar'}
+          </button>
+
+          <button
+            onClick={() => setShowDeleteModal(true)}
+            className="text-sm px-3 py-1 rounded-full border border-warm-100 text-warm-400 hover:text-red-400 hover:border-red-300 flex items-center gap-1"
+          >
+            <Trash2 size={13} />
+            Borrar
+          </button>
+        </div>
+
         <p className="text-xs text-warm-400 flex items-center gap-1">
           <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block"></span>
           Guardado {formatDate(note.updatedAt)}
         </p>
-        <div className="flex gap-2">
-          <button
-            onClick={() => togglePin(note.id)}
-            className={`text-sm px-3 py-1 rounded-full border ${
-              note.pinned
-                ? "border-warm-300 text-warm-300"
-                : "border-warm-100 text-warm-400"
-            }`}
-          >
-            {note.pinned ? "Fijada" : "Fijar"}
-          </button>
-          <button
-            onClick={() => deleteNote(note.id)}
-            className="text-sm px-3 py-1 rounded-full border border-warm-100 text-warm-400 hover:text-red-400 hover:border-red-300"
-          >
-            Borrar
-          </button>
-        </div>
       </div>
 
-      <div className="flex-1 flex flex-col p-6 gap-4">
+      <div className="flex-1 flex flex-col p-6 gap-4 overflow-hidden">
         <input
           type="text"
           placeholder="Título..."
           value={title}
           onChange={handleTitleChange}
-          className="bg-transparent text-warm-600 text-xl font-medium outline-none placeholder-warm-200"
+          className="bg-transparent text-warm-600 text-2xl font-semibold outline-none placeholder-warm-200"
         />
 
         <div className="flex flex-wrap gap-2 items-center">
-          {note.tags.map((tag) => (
+          {tags.map((tag) => (
             <span
               key={tag}
               className="flex items-center gap-1 bg-cream-300 text-warm-500 text-xs px-3 py-1 rounded-full"
             >
               {tag}
+
               <button
                 onClick={() => handleRemoveTag(tag)}
                 className="text-warm-400 hover:text-red-400"
@@ -108,25 +255,253 @@ function Editor() {
               </button>
             </span>
           ))}
+
           <input
             type="text"
-            placeholder="+ Añadir etiqueta..."
+            placeholder="+ etiqueta..."
             value={tagInput}
             onChange={(e) => setTagInput(e.target.value)}
             onKeyDown={handleAddTag}
-            className="bg-transparent text-warm-400 text-xs outline-none placeholder-warm-200 min-w-0"
+            className="bg-transparent text-warm-400 text-xs outline-none placeholder-warm-200 min-w-[120px]"
           />
         </div>
 
-        <textarea
-          placeholder="Escribe aquí lo que quieras..."
-          value={content}
-          onChange={handleContentChange}
-          className="flex-1 bg-transparent text-warm-500 text-sm leading-relaxed outline-none resize-none placeholder-warm-200"
-        />
+        {!isPreview && (
+          <div className="flex flex-wrap gap-2 border-y border-warm-100 py-2">
+            <ToolbarButton
+              title="Título grande"
+              onClick={() => insertLinePrefix('# ', 'Título grande')}
+            >
+              <Heading1 size={14} />
+            </ToolbarButton>
+
+            <ToolbarButton
+              title="Título mediano"
+              onClick={() => insertLinePrefix('## ', 'Título mediano')}
+            >
+              <Heading2 size={14} />
+            </ToolbarButton>
+
+            <ToolbarButton
+              title="Negrita"
+              onClick={() => insertText('**', '**', 'texto en negrita')}
+            >
+              <Bold size={14} />
+            </ToolbarButton>
+
+            <ToolbarButton
+              title="Lista"
+              onClick={() => insertLinePrefix('- ', 'Elemento de lista')}
+            >
+              <List size={14} />
+            </ToolbarButton>
+
+            <ToolbarButton
+              title="Lista numerada"
+              onClick={() => insertLinePrefix('1. ', 'Elemento numerado')}
+            >
+              <ListOrdered size={14} />
+            </ToolbarButton>
+
+            <ToolbarButton
+              title="Cita"
+              onClick={() => insertLinePrefix('> ', 'Cita o idea importante')}
+            >
+              <Quote size={14} />
+            </ToolbarButton>
+
+            <ToolbarButton
+              title="Separador"
+              onClick={() => insertLinePrefix('---', '')}
+            >
+              <Minus size={14} />
+            </ToolbarButton>
+          </div>
+        )}
+
+        {isPreview ? (
+          <div className="flex-1 overflow-y-auto bg-cream-100 border border-warm-100 rounded-2xl p-5">
+            <MarkdownPreview content={content} />
+          </div>
+        ) : (
+          <textarea
+            ref={textareaRef}
+            placeholder="Escribe aquí lo que quieras..."
+            value={content}
+            onChange={handleContentChange}
+            onKeyDown={handleTextareaKeyDown}
+            className="flex-1 bg-transparent text-warm-500 text-sm leading-relaxed outline-none resize-none placeholder-warm-200"
+          />
+        )}
       </div>
+
+      <div className="px-6 py-3 border-t border-warm-100 flex justify-between text-xs text-warm-300">
+        <span>
+          {wordCount} palabra{wordCount !== 1 ? 's' : ''}
+        </span>
+        <span>Markdown básico compatible</span>
+      </div>
+
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center px-4">
+          <div className="bg-cream-100 border border-warm-100 rounded-2xl shadow-xl w-full max-w-sm p-4">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div>
+                <h2 className="text-sm font-semibold text-warm-600">
+                  Borrar nota
+                </h2>
+
+                <p className="text-xs text-warm-400 mt-1 leading-relaxed">
+                  Esta acción eliminará la nota actual.
+                </p>
+              </div>
+
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="text-warm-300 hover:text-warm-500"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="bg-cream-200 rounded-xl p-3 mb-4">
+              <p className="text-xs text-warm-500 leading-relaxed">
+                ¿Seguro que quieres borrar{' '}
+                <span className="font-medium">
+                  {title || 'esta nota sin título'}
+                </span>
+                ?
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <button
+                onClick={handleDeleteConfirm}
+                className="w-full bg-red-100 text-red-600 text-xs font-medium py-2.5 px-3 rounded-full hover:bg-red-200"
+              >
+                Sí, borrar nota
+              </button>
+
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="w-full bg-cream-200 text-warm-400 text-xs font-medium py-2.5 px-3 rounded-full hover:bg-cream-300"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-  );
+  )
 }
 
-export default Editor;
+function ToolbarButton({ children, title, onClick }) {
+  return (
+    <button
+      type="button"
+      title={title}
+      onClick={onClick}
+      className="w-8 h-8 rounded-full bg-cream-200 border border-warm-100 text-warm-400 hover:text-warm-600 hover:bg-cream-300 flex items-center justify-center"
+    >
+      {children}
+    </button>
+  )
+}
+
+function MarkdownPreview({ content }) {
+  if (!content.trim()) {
+    return (
+      <p className="text-sm text-warm-300 italic">
+        No hay contenido para previsualizar.
+      </p>
+    )
+  }
+
+  const lines = content.split('\n')
+
+  return (
+    <div className="space-y-2 text-warm-500 text-sm leading-relaxed">
+      {lines.map((line, index) => {
+        const trimmed = line.trim()
+
+        if (!trimmed) {
+          return <div key={index} className="h-3" />
+        }
+
+        if (trimmed === '---') {
+          return <hr key={index} className="border-warm-100 my-4" />
+        }
+
+        if (trimmed.startsWith('# ')) {
+          return (
+            <h1
+              key={index}
+              className="text-2xl font-semibold text-warm-600 mt-4"
+            >
+              {renderInlineMarkdown(trimmed.replace('# ', ''))}
+            </h1>
+          )
+        }
+
+        if (trimmed.startsWith('## ')) {
+          return (
+            <h2
+              key={index}
+              className="text-xl font-semibold text-warm-600 mt-3"
+            >
+              {renderInlineMarkdown(trimmed.replace('## ', ''))}
+            </h2>
+          )
+        }
+
+        if (trimmed.startsWith('> ')) {
+          return (
+            <blockquote
+              key={index}
+              className="border-l-4 border-warm-200 pl-3 text-warm-400 italic"
+            >
+              {renderInlineMarkdown(trimmed.replace('> ', ''))}
+            </blockquote>
+          )
+        }
+
+        if (trimmed.startsWith('- ')) {
+          return (
+            <ul key={index} className="list-disc ml-5">
+              <li>{renderInlineMarkdown(trimmed.replace('- ', ''))}</li>
+            </ul>
+          )
+        }
+
+        if (/^\d+\.\s/.test(trimmed)) {
+          return (
+            <ol key={index} className="list-decimal ml-5">
+              <li>{renderInlineMarkdown(trimmed.replace(/^\d+\.\s/, ''))}</li>
+            </ol>
+          )
+        }
+
+        return <p key={index}>{renderInlineMarkdown(trimmed)}</p>
+      })}
+    </div>
+  )
+}
+
+function renderInlineMarkdown(text) {
+  const parts = text.split(/(\*\*.*?\*\*)/g)
+
+  return parts.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return (
+        <strong key={index} className="font-semibold text-warm-600">
+          {part.slice(2, -2)}
+        </strong>
+      )
+    }
+
+    return <span key={index}>{part}</span>
+  })
+}
+
+export default Editor
