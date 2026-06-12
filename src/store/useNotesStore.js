@@ -39,6 +39,7 @@ const useNotesStore = create(
       notes: [],
       activeNoteId: null,
       lastDeletedNote: null,
+      lastDeletedNotes: [],
 
       addNote: () => {
         const newNote = createEmptyNote();
@@ -54,7 +55,7 @@ const useNotesStore = create(
       updateNote: (id, changes) => {
         set((state) => ({
           notes: state.notes.map((note) =>
-            note.id === id
+            String(note.id) === String(id)
               ? {
                   ...note,
                   ...changes,
@@ -67,33 +68,84 @@ const useNotesStore = create(
 
       deleteNote: (id) => {
         set((state) => {
-          const noteToDelete = state.notes.find((note) => note.id === id);
-          const remainingNotes = state.notes.filter((note) => note.id !== id);
+          const noteToDelete = state.notes.find(
+            (note) => String(note.id) === String(id),
+          );
 
-          let nextActiveNoteId = state.activeNoteId;
+          const remainingNotes = state.notes.filter(
+            (note) => String(note.id) !== String(id),
+          );
 
-          if (state.activeNoteId === id) {
-            nextActiveNoteId = remainingNotes[0]?.id || null;
-          }
+          const activeNoteWasDeleted =
+            String(state.activeNoteId) === String(id);
 
           return {
             notes: remainingNotes,
-            activeNoteId: nextActiveNoteId,
+            activeNoteId: activeNoteWasDeleted
+              ? remainingNotes[0]?.id || null
+              : state.activeNoteId,
             lastDeletedNote: noteToDelete || null,
+            lastDeletedNotes: noteToDelete ? [noteToDelete] : [],
+          };
+        });
+      },
+
+      deleteNotes: (ids) => {
+        if (!Array.isArray(ids) || ids.length === 0) return;
+
+        set((state) => {
+          const idsToDelete = new Set(ids.map(String));
+
+          const deletedNotes = state.notes.filter((note) =>
+            idsToDelete.has(String(note.id)),
+          );
+
+          const remainingNotes = state.notes.filter(
+            (note) => !idsToDelete.has(String(note.id)),
+          );
+
+          if (deletedNotes.length === 0) return state;
+
+          const activeNoteWasDeleted = idsToDelete.has(
+            String(state.activeNoteId),
+          );
+
+          return {
+            notes: remainingNotes,
+            activeNoteId: activeNoteWasDeleted
+              ? remainingNotes[0]?.id || null
+              : state.activeNoteId,
+            lastDeletedNote: deletedNotes[0],
+            lastDeletedNotes: deletedNotes,
           };
         });
       },
 
       restoreLastDeletedNote: () => {
-        const { lastDeletedNote } = get();
+        const { lastDeletedNote, lastDeletedNotes } = get();
 
-        if (!lastDeletedNote) return;
+        const notesToRestore =
+          Array.isArray(lastDeletedNotes) && lastDeletedNotes.length > 0
+            ? lastDeletedNotes
+            : lastDeletedNote
+              ? [lastDeletedNote]
+              : [];
+
+        if (notesToRestore.length === 0) return;
 
         set((state) => ({
-          notes: [lastDeletedNote, ...state.notes],
-          activeNoteId: lastDeletedNote.id,
+          notes: [...notesToRestore, ...state.notes],
+          activeNoteId: notesToRestore[0].id,
           lastDeletedNote: null,
+          lastDeletedNotes: [],
         }));
+      },
+
+      clearLastDeletedNote: () => {
+        set({
+          lastDeletedNote: null,
+          lastDeletedNotes: [],
+        });
       },
 
       importNotes: (importedNotes, mode = "replace") => {
@@ -129,12 +181,13 @@ const useNotesStore = create(
             notes: normalizedImportedNotes,
             activeNoteId: normalizedImportedNotes[0]?.id || null,
             lastDeletedNote: null,
+            lastDeletedNotes: [],
           };
         });
       },
 
       togglePin: (id) => {
-        const note = get().notes.find((n) => n.id === id);
+        const note = get().notes.find((n) => String(n.id) === String(id));
 
         if (!note) return;
 
@@ -150,7 +203,9 @@ const useNotesStore = create(
       getActiveNote: () => {
         const { notes, activeNoteId } = get();
 
-        return notes.find((note) => note.id === activeNoteId) || null;
+        return (
+          notes.find((note) => String(note.id) === String(activeNoteId)) || null
+        );
       },
 
       addTagToNote: (id, tag) => {
@@ -160,7 +215,7 @@ const useNotesStore = create(
 
         if (!cleanTag) return;
 
-        const note = get().notes.find((n) => n.id === id);
+        const note = get().notes.find((n) => String(n.id) === String(id));
 
         if (!note) return;
 
@@ -174,7 +229,7 @@ const useNotesStore = create(
       },
 
       removeTagFromNote: (id, tag) => {
-        const note = get().notes.find((n) => n.id === id);
+        const note = get().notes.find((n) => String(n.id) === String(id));
 
         if (!note) return;
 
@@ -189,6 +244,7 @@ const useNotesStore = create(
         const cleanOldTag = String(oldTag || "")
           .trim()
           .toLowerCase();
+
         const cleanNewTag = String(newTag || "")
           .trim()
           .toLowerCase();
@@ -225,7 +281,7 @@ const useNotesStore = create(
       },
 
       duplicateNote: (id) => {
-        const note = get().notes.find((n) => n.id === id);
+        const note = get().notes.find((n) => String(n.id) === String(id));
 
         if (!note) return null;
 
@@ -247,17 +303,12 @@ const useNotesStore = create(
         return duplicatedNote.id;
       },
 
-      clearLastDeletedNote: () => {
-        set({
-          lastDeletedNote: null,
-        });
-      },
-
       clearAllNotes: () => {
         set({
           notes: [],
           activeNoteId: null,
           lastDeletedNote: null,
+          lastDeletedNotes: [],
         });
       },
     }),

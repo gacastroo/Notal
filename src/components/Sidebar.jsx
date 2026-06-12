@@ -14,6 +14,7 @@ import { formatDate } from '../lib/utils'
 import { searchNotesWithAI } from '../lib/ai'
 import BackupActions from './BackupActions'
 import DeleteNoteModal from './DeleteNoteModal'
+import DeleteNotesModal from './DeleteNotesModal'
 import RenameTagModal from './RenameTagModal'
 import ThemeToggle from './ThemeToggle'
 
@@ -24,9 +25,11 @@ function Sidebar() {
     setActiveNote,
     addNote,
     lastDeletedNote,
+    lastDeletedNotes,
     restoreLastDeletedNote,
     clearLastDeletedNote,
     renameTag,
+    deleteNotes,
   } = useNotesStore()
 
   const [search, setSearch] = useState('')
@@ -38,16 +41,32 @@ function Sidebar() {
   const [selectedTag, setSelectedTag] = useState('')
   const [tagBeingRenamed, setTagBeingRenamed] = useState(null)
   const [sortMode, setSortMode] = useState('updated-desc')
+  const [selectionMode, setSelectionMode] = useState(false)
+  const [selectedNoteIds, setSelectedNoteIds] = useState([])
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false)
 
   const abortRef = useRef(null)
   const requestIdRef = useRef(0)
   const searchInputRef = useRef(null)
+
+  const selectedNoteIdsAsStrings = selectedNoteIds.map(String)
 
   const allTags = [
     ...new Set(
       notes.flatMap((note) => (Array.isArray(note.tags) ? note.tags : []))
     ),
   ].sort()
+
+  const selectedNotes = notes.filter((note) =>
+    selectedNoteIdsAsStrings.includes(String(note.id))
+  )
+
+  const deletedCount =
+    Array.isArray(lastDeletedNotes) && lastDeletedNotes.length > 0
+      ? lastDeletedNotes.length
+      : lastDeletedNote
+        ? 1
+        : 0
 
   const handleSearchChange = useCallback((value) => {
     setSearch(value)
@@ -73,6 +92,34 @@ function Sidebar() {
     setIsSearching(false)
     setAiError('')
   }, [])
+
+  const toggleSelectionMode = () => {
+    setSelectionMode((current) => !current)
+    setSelectedNoteIds([])
+  }
+
+  const toggleNoteSelection = (id) => {
+    setSelectedNoteIds((current) => {
+      const currentAsStrings = current.map(String)
+      const idAsString = String(id)
+
+      if (currentAsStrings.includes(idAsString)) {
+        return current.filter((noteId) => String(noteId) !== idAsString)
+      }
+
+      return [...current, id]
+    })
+  }
+
+  const handleConfirmBulkDelete = () => {
+    if (selectedNoteIds.length === 0) return
+
+    deleteNotes(selectedNoteIds)
+
+    setSelectedNoteIds([])
+    setSelectionMode(false)
+    setShowBulkDeleteModal(false)
+  }
 
   useEffect(() => {
     const handleKeyboardShortcuts = (event) => {
@@ -108,7 +155,7 @@ function Sidebar() {
   }, [addNote, clearSearch, search])
 
   useEffect(() => {
-    if (!lastDeletedNote) return
+    if (deletedCount === 0) return
 
     const timeoutId = setTimeout(() => {
       clearLastDeletedNote()
@@ -117,7 +164,7 @@ function Sidebar() {
     return () => {
       clearTimeout(timeoutId)
     }
-  }, [lastDeletedNote, clearLastDeletedNote])
+  }, [deletedCount, clearLastDeletedNote])
 
   const runAISearch = useCallback(async () => {
     const query = search.trim()
@@ -388,6 +435,32 @@ function Sidebar() {
               <option value="title-asc">Título A-Z</option>
             </select>
           </div>
+
+          {notes.length > 0 && (
+            <div className="mt-3 bg-cream-200 border border-warm-100 rounded-xl p-3 space-y-2">
+              <button
+                onClick={toggleSelectionMode}
+                className="w-full text-xs bg-cream-100 text-warm-500 border border-warm-100 rounded-full py-2 px-2 hover:bg-cream-300"
+              >
+                {selectionMode ? 'Cancelar selección' : 'Seleccionar notas'}
+              </button>
+
+              {selectionMode && (
+                <button
+                  onClick={() => {
+                    if (selectedNoteIds.length === 0) return
+                    setShowBulkDeleteModal(true)
+                  }}
+                  disabled={selectedNoteIds.length === 0}
+                  className="w-full text-xs bg-red-100 text-red-600 border border-red-100 rounded-full py-2 px-2 hover:bg-red-200 disabled:opacity-40"
+                >
+                  {selectedNoteIds.length > 0
+                    ? `Eliminar seleccionadas (${selectedNoteIds.length})`
+                    : 'Eliminar seleccionadas'}
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto p-2">
@@ -434,6 +507,9 @@ function Sidebar() {
                   key={note.id}
                   note={note}
                   active={note.id === activeNoteId}
+                  selectionMode={selectionMode}
+                  selected={selectedNoteIdsAsStrings.includes(String(note.id))}
+                  onToggleSelect={() => toggleNoteSelection(note.id)}
                   onClick={() => setActiveNote(note.id)}
                 />
               ))}
@@ -451,6 +527,9 @@ function Sidebar() {
                   key={note.id}
                   note={note}
                   active={note.id === activeNoteId}
+                  selectionMode={selectionMode}
+                  selected={selectedNoteIdsAsStrings.includes(String(note.id))}
+                  onToggleSelect={() => toggleNoteSelection(note.id)}
                   onClick={() => setActiveNote(note.id)}
                 />
               ))}
@@ -515,12 +594,17 @@ function Sidebar() {
         </div>
       </div>
 
-      {lastDeletedNote && (
+      {deletedCount > 0 && (
         <div className="fixed bottom-5 right-5 z-50 bg-warm-600 text-cream-100 rounded-2xl shadow-xl px-4 py-3 flex items-center gap-3">
           <div>
-            <p className="text-sm font-medium">Nota eliminada</p>
+            <p className="text-sm font-medium">
+              {deletedCount === 1 ? 'Nota eliminada' : 'Notas eliminadas'}
+            </p>
+
             <p className="text-xs text-cream-200 max-w-[180px] truncate">
-              {lastDeletedNote.title || 'Sin título'}
+              {deletedCount === 1
+                ? lastDeletedNote?.title || 'Sin título'
+                : `${deletedCount} notas eliminadas`}
             </p>
           </div>
 
@@ -538,6 +622,15 @@ function Sidebar() {
           tag={tagBeingRenamed}
           onCancel={() => setTagBeingRenamed(null)}
           onConfirm={handleRenameTag}
+        />
+      )}
+
+      {showBulkDeleteModal && (
+        <DeleteNotesModal
+          notes={selectedNotes}
+          count={selectedNoteIds.length}
+          onCancel={() => setShowBulkDeleteModal(false)}
+          onConfirm={handleConfirmBulkDelete}
         />
       )}
     </>
@@ -560,12 +653,28 @@ const getTagColor = (tag) => {
   return TAG_COLORS[index]
 }
 
-function NoteItem({ note, active, onClick }) {
+function NoteItem({
+  note,
+  active,
+  onClick,
+  selectionMode,
+  selected,
+  onToggleSelect,
+}) {
   const { deleteNote } = useNotesStore()
   const [showDeleteModal, setShowDeleteModal] = useState(false)
 
-  const handleDeleteClick = (e) => {
-    e.stopPropagation()
+  const handleItemClick = () => {
+    if (selectionMode) {
+      onToggleSelect()
+      return
+    }
+
+    onClick()
+  }
+
+  const handleDeleteClick = (event) => {
+    event.stopPropagation()
     setShowDeleteModal(true)
   }
 
@@ -581,13 +690,28 @@ function NoteItem({ note, active, onClick }) {
   return (
     <>
       <div
-        onClick={onClick}
-        className={`group px-3 py-2 rounded-lg cursor-pointer mb-1 flex items-start justify-between gap-1 ${
+        onClick={handleItemClick}
+        className={`group px-3 py-2 rounded-lg cursor-pointer mb-1 flex items-start gap-2 ${
           active
             ? 'bg-cream-300 text-warm-600'
             : 'text-warm-500 hover:bg-cream-200'
-        }`}
+        } ${selected ? 'ring-1 ring-warm-300 bg-cream-300' : ''}`}
       >
+        {selectionMode && (
+          <input
+            type="checkbox"
+            checked={selected}
+            onClick={(event) => {
+              event.stopPropagation()
+            }}
+            onChange={(event) => {
+              event.stopPropagation()
+              onToggleSelect()
+            }}
+            className="mt-1"
+          />
+        )}
+
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">
             {note.title || 'Sin título'}
@@ -617,13 +741,15 @@ function NoteItem({ note, active, onClick }) {
           )}
         </div>
 
-        <button
-          onClick={handleDeleteClick}
-          className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 mt-0.5 flex-shrink-0 transition-opacity"
-          title="Eliminar nota"
-        >
-          <Trash2 size={14} />
-        </button>
+        {!selectionMode && (
+          <button
+            onClick={handleDeleteClick}
+            className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 mt-0.5 flex-shrink-0 transition-opacity"
+            title="Eliminar nota"
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
       </div>
 
       {showDeleteModal && (

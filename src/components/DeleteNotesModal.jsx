@@ -1,9 +1,9 @@
 import { X, Trash2, AlertTriangle } from 'lucide-react'
 
-function DeleteNoteModal({ note, onCancel, onConfirm }) {
-  if (!note) return null
+function DeleteNotesModal({ notes = [], count, onCancel, onConfirm }) {
+  const total = typeof count === 'number' ? count : notes.length
 
-  const title = note.title?.trim() || 'esta nota sin título'
+  if (total === 0) return null
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center px-4">
@@ -16,11 +16,11 @@ function DeleteNoteModal({ note, onCancel, onConfirm }) {
 
             <div>
               <h2 className="text-sm font-semibold text-warm-600">
-                Eliminar nota
+                Eliminar notas
               </h2>
 
               <p className="text-xs text-warm-400 mt-1 leading-relaxed">
-                Esta acción eliminará la nota seleccionada.
+                Vas a eliminar {total} nota{total !== 1 ? 's' : ''}.
               </p>
             </div>
           </div>
@@ -34,15 +34,25 @@ function DeleteNoteModal({ note, onCancel, onConfirm }) {
         </div>
 
         <div className="bg-cream-200 rounded-xl p-3 mb-4">
-          <p className="text-xs text-warm-500 leading-relaxed">
-            ¿Seguro que quieres eliminar{' '}
-            <span className="font-medium text-warm-600">{title}</span>?
+          <p className="text-xs text-warm-500 leading-relaxed mb-2">
+            ¿Seguro que quieres eliminar las notas seleccionadas?
           </p>
 
-          <p className="text-xs text-warm-300 mt-2 leading-relaxed">
-            Para evitar borrados accidentales, la nota solo se eliminará al
-            confirmar esta ventana.
-          </p>
+          {notes.length > 0 && (
+            <div className="max-h-28 overflow-y-auto space-y-1">
+              {notes.slice(0, 5).map((note) => (
+                <p key={note.id} className="text-xs text-warm-300 truncate">
+                  · {note.title || 'Sin título'}
+                </p>
+              ))}
+
+              {total > 5 && (
+                <p className="text-xs text-warm-300">
+                  · y {total - 5} más...
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -51,7 +61,7 @@ function DeleteNoteModal({ note, onCancel, onConfirm }) {
             className="w-full bg-red-100 text-red-600 text-xs font-medium py-2.5 px-3 rounded-full hover:bg-red-200 flex items-center justify-center gap-1"
           >
             <Trash2 size={13} />
-            Sí, eliminar nota
+            Sí, eliminar seleccionadas
           </button>
 
           <button
@@ -66,4 +76,4 @@ function DeleteNoteModal({ note, onCancel, onConfirm }) {
   )
 }
 
-export default DeleteNoteModal
+export default DeleteNotesModal
