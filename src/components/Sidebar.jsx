@@ -15,6 +15,7 @@ import { searchNotesWithAI } from '../lib/ai'
 import BackupActions from './BackupActions'
 import DeleteNoteModal from './DeleteNoteModal'
 import RenameTagModal from './RenameTagModal'
+import ThemeToggle from './ThemeToggle'
 
 function Sidebar() {
   const {
@@ -336,7 +337,9 @@ function Sidebar() {
                     <div
                       key={tag}
                       className={`flex items-center gap-1 rounded-lg ${
-                        selectedTag === tag ? 'bg-cream-300' : 'hover:bg-cream-300'
+                        selectedTag === tag
+                          ? 'bg-cream-300'
+                          : 'hover:bg-cream-300'
                       }`}
                     >
                       <button
@@ -464,6 +467,8 @@ function Sidebar() {
         </div>
 
         <div className="p-3 border-t border-warm-100 space-y-3">
+          <ThemeToggle />
+
           <div className="bg-cream-200 border border-warm-100 rounded-xl overflow-hidden">
             <button
               onClick={() => setShowShortcuts((current) => !current)}
