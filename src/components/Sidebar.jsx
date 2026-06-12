@@ -7,6 +7,7 @@ import {
   Search,
   Keyboard,
   ChevronDown,
+  Tag,
 } from 'lucide-react'
 import { formatDate } from '../lib/utils'
 import { searchNotesWithAI } from '../lib/ai'
@@ -29,10 +30,18 @@ function Sidebar() {
   const [isSearching, setIsSearching] = useState(false)
   const [aiError, setAiError] = useState('')
   const [showShortcuts, setShowShortcuts] = useState(false)
+  const [showTags, setShowTags] = useState(false)
+  const [selectedTag, setSelectedTag] = useState('')
 
   const abortRef = useRef(null)
   const requestIdRef = useRef(0)
   const searchInputRef = useRef(null)
+
+  const allTags = [
+    ...new Set(
+      notes.flatMap((note) => (Array.isArray(note.tags) ? note.tags : []))
+    ),
+  ].sort()
 
   const handleSearchChange = useCallback((value) => {
     setSearch(value)
@@ -165,7 +174,7 @@ function Sidebar() {
     }
   }, [search, notes])
 
-  const filtered =
+  const searchedNotes =
     aiResults !== null
       ? aiResults
       : notes.filter((note) => {
@@ -176,6 +185,12 @@ function Sidebar() {
             (note.content || '').toLowerCase().includes(q)
           )
         })
+
+  const filtered = selectedTag
+    ? searchedNotes.filter(
+        (note) => Array.isArray(note.tags) && note.tags.includes(selectedTag)
+      )
+    : searchedNotes
 
   const pinned = filtered.filter((note) => note.pinned)
   const unpinned = filtered.filter((note) => !note.pinned)
@@ -246,12 +261,70 @@ function Sidebar() {
               Pulsa Enter o el icono de búsqueda para usar IA.
             </p>
           )}
+
+          {allTags.length > 0 && (
+            <div className="mt-3 bg-cream-200 border border-warm-100 rounded-xl overflow-hidden">
+              <button
+                onClick={() => setShowTags((current) => !current)}
+                className="w-full px-3 py-2 flex items-center justify-between text-xs text-warm-400 hover:bg-cream-300"
+              >
+                <span className="flex items-center gap-1 font-medium">
+                  <Tag size={13} />
+                  {selectedTag ? `Etiqueta: ${selectedTag}` : 'Etiquetas'}
+                </span>
+
+                <ChevronDown
+                  size={14}
+                  className={`transition-transform ${
+                    showTags ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+
+              {showTags && (
+                <div className="px-3 pb-3 pt-1 space-y-1">
+                  <button
+                    onClick={() => {
+                      setSelectedTag('')
+                      setShowTags(false)
+                    }}
+                    className={`w-full text-left text-xs rounded-lg px-2 py-1.5 ${
+                      !selectedTag
+                        ? 'bg-cream-300 text-warm-600 font-medium'
+                        : 'text-warm-400 hover:bg-cream-300'
+                    }`}
+                  >
+                    Todas las notas
+                  </button>
+
+                  {allTags.map((tag) => (
+                    <button
+                      key={tag}
+                      onClick={() => {
+                        setSelectedTag(tag)
+                        setShowTags(false)
+                      }}
+                      className={`w-full text-left text-xs rounded-lg px-2 py-1.5 ${
+                        selectedTag === tag
+                          ? 'bg-cream-300 text-warm-600 font-medium'
+                          : 'text-warm-400 hover:bg-cream-300'
+                      }`}
+                    >
+                      #{tag}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto p-2">
-          {search && filtered.length === 0 && !isSearching && (
+          {(search || selectedTag) && filtered.length === 0 && !isSearching && (
             <p className="max-w-[180px] mx-auto text-sm leading-relaxed text-warm-400 text-center mt-8 px-4">
-              No hay notas relacionadas
+              {selectedTag
+                ? 'No hay notas con esta etiqueta'
+                : 'No hay notas relacionadas'}
             </p>
           )}
 
@@ -299,7 +372,7 @@ function Sidebar() {
           {unpinned.length > 0 && (
             <>
               <p className="text-xs text-warm-400 uppercase tracking-wider px-2 py-2">
-                {search ? 'Resultados' : 'Todas'}
+                {search || selectedTag ? 'Resultados' : 'Todas'}
               </p>
 
               {unpinned.map((note) => (
