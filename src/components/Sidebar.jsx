@@ -335,11 +335,15 @@ function Sidebar() {
           )}
         </div>
 
-        <div className="mt-3">
+        <div className="mt-3 p-3">
+          <label className="block text-[11px] text-warm-300 font-medium mb-1.5">
+            Ordenar por
+          </label>
+
           <select
             value={sortMode}
             onChange={(e) => setSortMode(e.target.value)}
-            className="w-full bg-cream-200 text-warm-400 text-xs border border-warm-100 rounded-xl px-3 py-2 outline-none"
+            className="w-full  text-warm-500 text-xs border border-warm-100 rounded-lg px-3 py-2.5 outline-none cursor-pointer"
           >
             <option value="updated-desc">Última actualización</option>
             <option value="updated-asc">Más antiguas primero</option>
