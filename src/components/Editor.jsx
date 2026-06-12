@@ -23,7 +23,7 @@ function Editor() {
     return (
       <div className="flex-1 flex flex-col items-center justify-center bg-cream-50 gap-3">
         <p className="text-4xl">📓</p>
-        <p className="text-warm-500 font-medium">Bienvenido a Notal</p>
+        <p className="text-warm-500 font-medium">Bienvenido a Notala</p>
         <p className="text-warm-300 text-sm text-center max-w-xs">
           Captura tus ideas, tareas y notas profesionales en un solo lugar.
         </p>
