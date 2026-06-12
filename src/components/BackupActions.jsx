@@ -1,79 +1,97 @@
-import { useRef, useState } from 'react'
-import { Download, Upload, Loader2, X } from 'lucide-react'
-import useNotesStore from '../store/useNotesStore'
-import {
-  exportNotesToJson,
-  importNotesFromJsonFile,
-} from '../lib/backup'
+import { useRef, useState } from "react";
+import { Download, Upload, Loader2, X, FileText } from 'lucide-react'
+import useNotesStore from "../store/useNotesStore";
+import { exportNotesToJson, importNotesFromJsonFile } from "../lib/backup";
+import { exportNotesToMarkdown, exportNotesToPdf } from "../lib/exportNotes";
+
 
 function BackupActions() {
-  const fileInputRef = useRef(null)
+  const fileInputRef = useRef(null);
 
-  const { notes, importNotes } = useNotesStore()
+  const { notes, importNotes } = useNotesStore();
+  const handleExportMarkdown = () => {
+    if (notes.length === 0) {
+      setMessage("No hay notas para exportar.");
+      return;
+    }
 
-  const [isImporting, setIsImporting] = useState(false)
-  const [message, setMessage] = useState('')
-  const [showModal, setShowModal] = useState(false)
-  const [pendingNotes, setPendingNotes] = useState([])
+    exportNotesToMarkdown(notes);
+    setMessage("Notas exportadas en Markdown.");
+  };
+
+  const handleExportPdf = () => {
+    if (notes.length === 0) {
+      setMessage("No hay notas para exportar.");
+      return;
+    }
+
+    exportNotesToPdf(notes);
+    setMessage("Se ha abierto la exportación a PDF.");
+  };
+
+  const [isImporting, setIsImporting] = useState(false);
+  const [message, setMessage] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [pendingNotes, setPendingNotes] = useState([]);
 
   const handleExport = () => {
     if (notes.length === 0) {
-      setMessage('No hay notas para exportar.')
-      return
+      setMessage("No hay notas para exportar.");
+      return;
     }
 
-    exportNotesToJson(notes)
-    setMessage('Backup exportado correctamente.')
-  }
+    exportNotesToJson(notes);
+    setMessage("Backup exportado correctamente.");
+  };
 
   const handleImportClick = () => {
-    setMessage('')
-    fileInputRef.current?.click()
-  }
+    setMessage("");
+    fileInputRef.current?.click();
+  };
 
   const handleImportFile = async (event) => {
-    const file = event.target.files?.[0]
+    const file = event.target.files?.[0];
 
-    if (!file) return
+    if (!file) return;
 
-    setIsImporting(true)
-    setMessage('')
+    setIsImporting(true);
+    setMessage("");
 
     try {
-      const importedNotes = await importNotesFromJsonFile(file)
+      const importedNotes = await importNotesFromJsonFile(file);
 
-      setPendingNotes(importedNotes)
-      setShowModal(true)
+      setPendingNotes(importedNotes);
+      setShowModal(true);
     } catch (error) {
-      console.error('Error importando notas:', error)
-      setMessage('No se pudo importar el archivo.')
+      console.error("Error importando notas:", error);
+      setMessage("No se pudo importar el archivo.");
     } finally {
-      setIsImporting(false)
-      event.target.value = ''
+      setIsImporting(false);
+      event.target.value = "";
     }
-  }
+  };
 
   const handleReplaceNotes = () => {
-    importNotes(pendingNotes, 'replace')
+    importNotes(pendingNotes, "replace");
 
-    setMessage(`${pendingNotes.length} notas importadas correctamente.`)
-    setPendingNotes([])
-    setShowModal(false)
-  }
+    setMessage(`${pendingNotes.length} notas importadas correctamente.`);
+    setPendingNotes([]);
+    setShowModal(false);
+  };
 
   const handleMergeNotes = () => {
-    importNotes(pendingNotes, 'merge')
+    importNotes(pendingNotes, "merge");
 
-    setMessage(`${pendingNotes.length} notas añadidas correctamente.`)
-    setPendingNotes([])
-    setShowModal(false)
-  }
+    setMessage(`${pendingNotes.length} notas añadidas correctamente.`);
+    setPendingNotes([]);
+    setShowModal(false);
+  };
 
   const handleCancelImport = () => {
-    setPendingNotes([])
-    setShowModal(false)
-    setMessage('Importación cancelada.')
-  }
+    setPendingNotes([]);
+    setShowModal(false);
+    setMessage("Importación cancelada.");
+  };
 
   return (
     <>
@@ -116,6 +134,24 @@ function BackupActions() {
         )}
       </div>
 
+      <div className="flex gap-2">
+        <button
+          onClick={handleExportMarkdown}
+          className="flex-1 text-xs bg-cream-200 text-warm-500 border border-warm-100 rounded-full py-2 px-2 flex items-center justify-center gap-1 hover:bg-cream-300"
+        >
+          <FileText size={13} />
+          .md
+        </button>
+
+        <button
+          onClick={handleExportPdf}
+          className="flex-1 text-xs bg-cream-200 text-warm-500 border border-warm-100 rounded-full py-2 px-2 flex items-center justify-center gap-1 hover:bg-cream-300"
+        >
+          <Download size={13} />
+          PDF
+        </button>
+      </div>
+
       {showModal && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center px-4">
           <div className="bg-cream-100 border border-warm-100 rounded-2xl shadow-xl w-full max-w-sm p-4">
@@ -126,11 +162,11 @@ function BackupActions() {
                 </h2>
 
                 <p className="text-xs text-warm-400 mt-1 leading-relaxed">
-                  El archivo contiene{' '}
+                  El archivo contiene{" "}
                   <span className="font-medium text-warm-500">
                     {pendingNotes.length}
-                  </span>{' '}
-                  nota{pendingNotes.length !== 1 ? 's' : ''}.
+                  </span>{" "}
+                  nota{pendingNotes.length !== 1 ? "s" : ""}.
                 </p>
               </div>
 
@@ -180,7 +216,7 @@ function BackupActions() {
         </div>
       )}
     </>
-  )
+  );
 }
 
-export default BackupActions
+export default BackupActions;
