@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   X,
   Pin,
@@ -16,9 +16,13 @@ import {
   Copy,
   Pencil,
   CheckSquare,
+  FileText,
+  Download,
 } from 'lucide-react'
 import useNotesStore from '../store/useNotesStore'
 import { formatDate } from '../lib/utils'
+import { exportNoteToMarkdown, exportNoteToPdf } from '../lib/exportNotes'
+import DeleteNoteModal from './DeleteNoteModal'
 import RenameTagModal from './RenameTagModal'
 
 function Editor() {
@@ -33,26 +37,12 @@ function Editor() {
   } = useNotesStore()
 
   const note = getActiveNote()
-
   const textareaRef = useRef(null)
 
-  const [title, setTitle] = useState('')
-  const [content, setContent] = useState('')
   const [tagInput, setTagInput] = useState('')
   const [isPreview, setIsPreview] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [tagBeingRenamed, setTagBeingRenamed] = useState(null)
-
-  useEffect(() => {
-    if (note) {
-      setTitle(note.title || '')
-      setContent(note.content || '')
-      setTagInput('')
-      setIsPreview(false)
-      setShowDeleteModal(false)
-      setTagBeingRenamed(null)
-    }
-  }, [note?.id])
 
   if (!note) {
     return (
@@ -80,6 +70,8 @@ function Editor() {
     )
   }
 
+  const title = note.title || ''
+  const content = note.content || ''
   const tags = Array.isArray(note.tags) ? note.tags : []
 
   const wordCount = content
@@ -88,21 +80,14 @@ function Editor() {
     .filter(Boolean).length
 
   const handleTitleChange = (e) => {
-    const value = e.target.value
-
-    setTitle(value)
-    updateNote(note.id, { title: value })
+    updateNote(note.id, { title: e.target.value })
   }
 
   const handleContentChange = (e) => {
-    const value = e.target.value
-
-    setContent(value)
-    updateNote(note.id, { content: value })
+    updateNote(note.id, { content: e.target.value })
   }
 
   const updateContent = (value) => {
-    setContent(value)
     updateNote(note.id, { content: value })
   }
 
@@ -224,10 +209,18 @@ function Editor() {
     setShowDeleteModal(false)
   }
 
+  const handleExportMarkdown = () => {
+    exportNoteToMarkdown(note)
+  }
+
+  const handleExportPdf = () => {
+    exportNoteToPdf(note)
+  }
+
   return (
-    <div className="flex-1 flex flex-col bg-cream-50 relative">
-      <div className="flex items-center justify-between px-6 py-3 border-b border-warm-100 bg-cream-50">
-        <div className="flex gap-2">
+    <div className="flex-1 flex flex-col bg-cream-50 relative min-w-0">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 px-5 md:px-6 py-3 border-b border-warm-100 bg-cream-50">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setIsPreview((current) => !current)}
             className="text-sm px-3 py-1 rounded-full border border-warm-100 text-warm-400 hover:text-warm-600 hover:border-warm-200 flex items-center gap-1"
@@ -257,6 +250,22 @@ function Editor() {
           </button>
 
           <button
+            onClick={handleExportMarkdown}
+            className="text-sm px-3 py-1 rounded-full border border-warm-100 text-warm-400 hover:text-warm-600 hover:border-warm-200 flex items-center gap-1"
+          >
+            <FileText size={13} />
+            MD
+          </button>
+
+          <button
+            onClick={handleExportPdf}
+            className="text-sm px-3 py-1 rounded-full border border-warm-100 text-warm-400 hover:text-warm-600 hover:border-warm-200 flex items-center gap-1"
+          >
+            <Download size={13} />
+            PDF
+          </button>
+
+          <button
             onClick={() => setShowDeleteModal(true)}
             className="text-sm px-3 py-1 rounded-full border border-warm-100 text-warm-400 hover:text-red-400 hover:border-red-300 flex items-center gap-1"
           >
@@ -271,7 +280,7 @@ function Editor() {
         </p>
       </div>
 
-      <div className="flex-1 flex flex-col p-6 gap-4 overflow-hidden">
+      <div className="flex-1 flex flex-col p-5 md:p-6 gap-4 overflow-hidden">
         <input
           type="text"
           placeholder="Título..."
@@ -400,54 +409,11 @@ function Editor() {
       </div>
 
       {showDeleteModal && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center px-4">
-          <div className="bg-cream-100 border border-warm-100 rounded-2xl shadow-xl w-full max-w-sm p-4">
-            <div className="flex items-start justify-between gap-3 mb-3">
-              <div>
-                <h2 className="text-sm font-semibold text-warm-600">
-                  Borrar nota
-                </h2>
-
-                <p className="text-xs text-warm-400 mt-1 leading-relaxed">
-                  Esta acción eliminará la nota actual.
-                </p>
-              </div>
-
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="text-warm-300 hover:text-warm-500"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <div className="bg-cream-200 rounded-xl p-3 mb-4">
-              <p className="text-xs text-warm-500 leading-relaxed">
-                ¿Seguro que quieres borrar{' '}
-                <span className="font-medium">
-                  {title || 'esta nota sin título'}
-                </span>
-                ?
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <button
-                onClick={handleDeleteConfirm}
-                className="w-full bg-red-100 text-red-600 text-xs font-medium py-2.5 px-3 rounded-full hover:bg-red-200"
-              >
-                Sí, borrar nota
-              </button>
-
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="w-full bg-cream-200 text-warm-400 text-xs font-medium py-2.5 px-3 rounded-full hover:bg-cream-300"
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
+        <DeleteNoteModal
+          note={note}
+          onCancel={() => setShowDeleteModal(false)}
+          onConfirm={handleDeleteConfirm}
+        />
       )}
 
       {tagBeingRenamed && (
