@@ -331,62 +331,76 @@ function Editor() {
         </div>
 
         {!isPreview && (
-          <div className="flex flex-wrap gap-2 border-y border-warm-100 py-2">
-            <ToolbarButton
-              title="Título grande"
-              onClick={() => insertLinePrefix("# ", "Título grande")}
-            >
-              <Heading1 size={14} />
-            </ToolbarButton>
+          <div className="border-y border-warm-100 py-3 space-y-2">
+            <p className="text-[11px] uppercase tracking-wide text-warm-300 font-medium">
+              Formato
+            </p>
 
-            <ToolbarButton
-              title="Título mediano"
-              onClick={() => insertLinePrefix("## ", "Título mediano")}
-            >
-              <Heading2 size={14} />
-            </ToolbarButton>
+            <div className="flex flex-wrap gap-2">
+              <ToolbarButton
+                title="Título grande"
+                label="Título"
+                onClick={() => insertLinePrefix("# ", "Título grande")}
+              >
+                <Heading1 size={14} />
+              </ToolbarButton>
 
-            <ToolbarButton
-              title="Negrita"
-              onClick={() => insertText("**", "**", "texto en negrita")}
-            >
-              <Bold size={14} />
-            </ToolbarButton>
+              <ToolbarButton
+                title="Título mediano"
+                label="Subtítulo"
+                onClick={() => insertLinePrefix("## ", "Título mediano")}
+              >
+                <Heading2 size={14} />
+              </ToolbarButton>
 
-            <ToolbarButton
-              title="Lista"
-              onClick={() => insertLinePrefix("- ", "Elemento de lista")}
-            >
-              <List size={14} />
-            </ToolbarButton>
+              <ToolbarButton
+                title="Negrita"
+                label="Negrita"
+                onClick={() => insertText("**", "**", "texto en negrita")}
+              >
+                <Bold size={14} />
+              </ToolbarButton>
 
-            <ToolbarButton
-              title="Checklist"
-              onClick={() => insertLinePrefix("- [ ] ", "Tarea pendiente")}
-            >
-              <CheckSquare size={14} />
-            </ToolbarButton>
+              <ToolbarButton
+                title="Lista"
+                label="Lista"
+                onClick={() => insertLinePrefix("- ", "Elemento de lista")}
+              >
+                <List size={14} />
+              </ToolbarButton>
 
-            <ToolbarButton
-              title="Lista numerada"
-              onClick={() => insertLinePrefix("1. ", "Elemento numerado")}
-            >
-              <ListOrdered size={14} />
-            </ToolbarButton>
+              <ToolbarButton
+                title="Checklist"
+                label="Tareas"
+                onClick={() => insertLinePrefix("- [ ] ", "Tarea pendiente")}
+              >
+                <CheckSquare size={14} />
+              </ToolbarButton>
 
-            <ToolbarButton
-              title="Cita"
-              onClick={() => insertLinePrefix("> ", "Cita o idea importante")}
-            >
-              <Quote size={14} />
-            </ToolbarButton>
+              <ToolbarButton
+                title="Lista numerada"
+                label="Numerada"
+                onClick={() => insertLinePrefix("1. ", "Elemento numerado")}
+              >
+                <ListOrdered size={14} />
+              </ToolbarButton>
 
-            <ToolbarButton
-              title="Separador"
-              onClick={() => insertLinePrefix("---", "")}
-            >
-              <Minus size={14} />
-            </ToolbarButton>
+              <ToolbarButton
+                title="Cita"
+                label="Cita"
+                onClick={() => insertLinePrefix("> ", "Cita o idea importante")}
+              >
+                <Quote size={14} />
+              </ToolbarButton>
+
+              <ToolbarButton
+                title="Separador"
+                label="Línea"
+                onClick={() => insertLinePrefix("---", "")}
+              >
+                <Minus size={14} />
+              </ToolbarButton>
+            </div>
           </div>
         )}
 
@@ -432,15 +446,16 @@ function Editor() {
   );
 }
 
-function ToolbarButton({ children, title, onClick }) {
+function ToolbarButton({ children, title, label, onClick }) {
   return (
     <button
       type="button"
       title={title}
       onClick={onClick}
-      className="w-8 h-8 rounded-full bg-cream-200 border border-warm-100 text-warm-400 hover:text-warm-600 hover:bg-cream-300 flex items-center justify-center"
+      className="h-8 rounded-full bg-cream-200 border border-warm-100 text-warm-400 hover:text-warm-600 hover:bg-cream-300 flex items-center justify-center gap-1 px-3"
     >
       {children}
+      <span className="text-xs">{label}</span>
     </button>
   );
 }
