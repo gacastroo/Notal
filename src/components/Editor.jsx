@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState } from "react";
 import {
   X,
   Pin,
@@ -18,12 +18,12 @@ import {
   CheckSquare,
   FileText,
   Download,
-} from 'lucide-react'
-import useNotesStore from '../store/useNotesStore'
-import { formatDate } from '../lib/utils'
-import { exportNoteToMarkdown, exportNoteToPdf } from '../lib/exportNotes'
-import DeleteNoteModal from './DeleteNoteModal'
-import RenameTagModal from './RenameTagModal'
+} from "lucide-react";
+import useNotesStore from "../store/useNotesStore";
+import { formatDate } from "../lib/utils";
+import { exportNoteToMarkdown, exportNoteToPdf } from "../lib/exportNotes";
+import DeleteNoteModal from "./DeleteNoteModal";
+import RenameTagModal from "./RenameTagModal";
 
 function Editor() {
   const {
@@ -34,15 +34,15 @@ function Editor() {
     duplicateNote,
     renameTag,
     addNote,
-  } = useNotesStore()
+  } = useNotesStore();
 
-  const note = getActiveNote()
-  const textareaRef = useRef(null)
+  const note = getActiveNote();
+  const textareaRef = useRef(null);
 
-  const [tagInput, setTagInput] = useState('')
-  const [isPreview, setIsPreview] = useState(false)
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [tagBeingRenamed, setTagBeingRenamed] = useState(null)
+  const [tagInput, setTagInput] = useState("");
+  const [isPreview, setIsPreview] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [tagBeingRenamed, setTagBeingRenamed] = useState(null);
 
   if (!note) {
     return (
@@ -67,207 +67,212 @@ function Editor() {
           </button>
         </div>
       </div>
-    )
+    );
   }
 
-  const title = note.title || ''
-  const content = note.content || ''
-  const tags = Array.isArray(note.tags) ? note.tags : []
+  const title = note.title || "";
+  const content = note.content || "";
+  const tags = Array.isArray(note.tags) ? note.tags : [];
 
-  const wordCount = content
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean).length
+  const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
 
   const handleTitleChange = (e) => {
-    updateNote(note.id, { title: e.target.value })
-  }
+    updateNote(note.id, { title: e.target.value });
+  };
 
   const handleContentChange = (e) => {
-    updateNote(note.id, { content: e.target.value })
-  }
+    updateNote(note.id, { content: e.target.value });
+  };
 
   const updateContent = (value) => {
-    updateNote(note.id, { content: value })
-  }
+    updateNote(note.id, { content: value });
+  };
 
-  const insertText = (before, after = '', placeholder = '') => {
-    const textarea = textareaRef.current
+  const insertText = (before, after = "", placeholder = "") => {
+    const textarea = textareaRef.current;
 
-    if (!textarea) return
+    if (!textarea) return;
 
-    const start = textarea.selectionStart
-    const end = textarea.selectionEnd
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
 
-    const selectedText = content.slice(start, end)
-    const textToInsert = selectedText || placeholder
+    const selectedText = content.slice(start, end);
+    const textToInsert = selectedText || placeholder;
 
     const newContent =
       content.slice(0, start) +
       before +
       textToInsert +
       after +
-      content.slice(end)
+      content.slice(end);
 
-    updateContent(newContent)
+    updateContent(newContent);
 
     requestAnimationFrame(() => {
-      textarea.focus()
+      textarea.focus();
 
-      const cursorStart = start + before.length
-      const cursorEnd = cursorStart + textToInsert.length
+      const cursorStart = start + before.length;
+      const cursorEnd = cursorStart + textToInsert.length;
 
-      textarea.setSelectionRange(cursorStart, cursorEnd)
-    })
-  }
+      textarea.setSelectionRange(cursorStart, cursorEnd);
+    });
+  };
 
-  const insertLinePrefix = (prefix, placeholder = '') => {
-    const textarea = textareaRef.current
+  const insertLinePrefix = (prefix, placeholder = "") => {
+    const textarea = textareaRef.current;
 
-    if (!textarea) return
+    if (!textarea) return;
 
-    const start = textarea.selectionStart
-    const end = textarea.selectionEnd
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
 
-    const selectedText = content.slice(start, end)
-    const textToInsert = selectedText || placeholder
+    const selectedText = content.slice(start, end);
+    const textToInsert = selectedText || placeholder;
 
     const needsLineBreakBefore =
-      start > 0 && content[start - 1] !== '\n' ? '\n' : ''
+      start > 0 && content[start - 1] !== "\n" ? "\n" : "";
 
     const needsLineBreakAfter =
-      end < content.length && content[end] !== '\n' ? '\n' : ''
+      end < content.length && content[end] !== "\n" ? "\n" : "";
 
-    const newText = `${needsLineBreakBefore}${prefix}${textToInsert}${needsLineBreakAfter}`
+    const newText = `${needsLineBreakBefore}${prefix}${textToInsert}${needsLineBreakAfter}`;
 
-    const newContent = content.slice(0, start) + newText + content.slice(end)
+    const newContent = content.slice(0, start) + newText + content.slice(end);
 
-    updateContent(newContent)
+    updateContent(newContent);
 
     requestAnimationFrame(() => {
-      textarea.focus()
+      textarea.focus();
 
-      const cursorStart = start + needsLineBreakBefore.length + prefix.length
-      const cursorEnd = cursorStart + textToInsert.length
+      const cursorStart = start + needsLineBreakBefore.length + prefix.length;
+      const cursorEnd = cursorStart + textToInsert.length;
 
-      textarea.setSelectionRange(cursorStart, cursorEnd)
-    })
-  }
+      textarea.setSelectionRange(cursorStart, cursorEnd);
+    });
+  };
 
   const handleAddTag = (e) => {
-    if (e.key !== 'Enter' && e.key !== ',') return
+    if (e.key !== "Enter" && e.key !== ",") return;
 
-    e.preventDefault()
+    e.preventDefault();
 
-    const newTag = tagInput.trim().toLowerCase()
+    const newTag = tagInput.trim().toLowerCase();
 
-    if (!newTag) return
+    if (!newTag) return;
 
     if (!tags.includes(newTag)) {
       updateNote(note.id, {
         tags: [...tags, newTag],
-      })
+      });
     }
 
-    setTagInput('')
-  }
+    setTagInput("");
+  };
 
   const handleRemoveTag = (tagToRemove) => {
     updateNote(note.id, {
       tags: tags.filter((tag) => tag !== tagToRemove),
-    })
-  }
+    });
+  };
 
   const handleRenameTag = (newTagName) => {
-    if (!tagBeingRenamed) return
+    if (!tagBeingRenamed) return;
 
-    renameTag(tagBeingRenamed, newTagName)
-    setTagBeingRenamed(null)
-  }
+    renameTag(tagBeingRenamed, newTagName);
+    setTagBeingRenamed(null);
+  };
 
   const handleTextareaKeyDown = (e) => {
     const isBoldShortcut =
-      (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b'
+      (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b";
 
     if (isBoldShortcut) {
-      e.preventDefault()
-      insertText('**', '**', 'texto en negrita')
+      e.preventDefault();
+      insertText("**", "**", "texto en negrita");
     }
 
-    if (e.key === 'Tab') {
-      e.preventDefault()
-      insertText('  ')
+    if (e.key === "Tab") {
+      e.preventDefault();
+      insertText("  ");
     }
-  }
+  };
 
   const handleDuplicateNote = () => {
-    duplicateNote(note.id)
-  }
+    duplicateNote(note.id);
+  };
 
   const handleDeleteConfirm = () => {
-    deleteNote(note.id)
-    setShowDeleteModal(false)
-  }
+    deleteNote(note.id);
+    setShowDeleteModal(false);
+  };
 
   const handleExportMarkdown = () => {
-    exportNoteToMarkdown(note)
-  }
+    exportNoteToMarkdown(note);
+  };
 
   const handleExportPdf = () => {
-    exportNoteToPdf(note)
-  }
+    exportNoteToPdf(note);
+  };
 
   return (
     <div className="flex-1 flex flex-col bg-cream-50 relative min-w-0">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 px-5 md:px-6 py-3 border-b border-warm-100 bg-cream-50">
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setIsPreview((current) => !current)}
-            className="text-sm px-3 py-1 rounded-full border border-warm-100 text-warm-400 hover:text-warm-600 hover:border-warm-200 flex items-center gap-1"
-          >
-            {isPreview ? <Edit3 size={13} /> : <Eye size={13} />}
-            {isPreview ? 'Editar' : 'Vista'}
-          </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setIsPreview((current) => !current)}
+              className="text-sm px-3 py-1 rounded-full border border-warm-100 text-warm-400 hover:text-warm-600 hover:border-warm-200 flex items-center gap-1"
+            >
+              {isPreview ? <Edit3 size={13} /> : <Eye size={13} />}
+              {isPreview ? "Editar" : "Vista"}
+            </button>
 
-          <button
-            onClick={() => togglePin(note.id)}
-            className={`text-sm px-3 py-1 rounded-full border flex items-center gap-1 ${
-              note.pinned
-                ? 'border-warm-300 text-warm-300'
-                : 'border-warm-100 text-warm-400 hover:text-warm-600 hover:border-warm-200'
-            }`}
-          >
-            {note.pinned ? <PinOff size={13} /> : <Pin size={13} />}
-            {note.pinned ? 'Fijada' : 'Fijar'}
-          </button>
+            <button
+              onClick={() => togglePin(note.id)}
+              className={`text-sm px-3 py-1 rounded-full border flex items-center gap-1 ${
+                note.pinned
+                  ? "border-warm-300 text-warm-300"
+                  : "border-warm-100 text-warm-400 hover:text-warm-600 hover:border-warm-200"
+              }`}
+            >
+              {note.pinned ? <PinOff size={13} /> : <Pin size={13} />}
+              {note.pinned ? "Fijada" : "Fijar"}
+            </button>
 
-          <button
-            onClick={handleDuplicateNote}
-            className="text-sm px-3 py-1 rounded-full border border-warm-100 text-warm-400 hover:text-warm-600 hover:border-warm-200 flex items-center gap-1"
-          >
-            <Copy size={13} />
-            Duplicar
-          </button>
+            <button
+              onClick={handleDuplicateNote}
+              className="text-sm px-3 py-1 rounded-full border border-warm-100 text-warm-400 hover:text-warm-600 hover:border-warm-200 flex items-center gap-1"
+            >
+              <Copy size={13} />
+              Duplicar
+            </button>
+          </div>
 
-          <button
-            onClick={handleExportMarkdown}
-            className="text-sm px-3 py-1 rounded-full border border-warm-100 text-warm-400 hover:text-warm-600 hover:border-warm-200 flex items-center gap-1"
-          >
-            <FileText size={13} />
-            MD
-          </button>
+          <div className="h-5 w-px bg-warm-100 hidden sm:block" />
 
-          <button
-            onClick={handleExportPdf}
-            className="text-sm px-3 py-1 rounded-full border border-warm-100 text-warm-400 hover:text-warm-600 hover:border-warm-200 flex items-center gap-1"
-          >
-            <Download size={13} />
-            PDF
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={handleExportMarkdown}
+              className="text-sm px-3 py-1 rounded-full border border-warm-100 text-warm-400 hover:text-warm-600 hover:border-warm-200 flex items-center gap-1"
+            >
+              <FileText size={13} />
+              MD
+            </button>
+
+            <button
+              onClick={handleExportPdf}
+              className="text-sm px-3 py-1 rounded-full border border-warm-100 text-warm-400 hover:text-warm-600 hover:border-warm-200 flex items-center gap-1"
+            >
+              <Download size={13} />
+              PDF
+            </button>
+          </div>
+
+          <div className="h-5 w-px bg-warm-100 hidden sm:block" />
 
           <button
             onClick={() => setShowDeleteModal(true)}
-            className="text-sm px-3 py-1 rounded-full border border-warm-100 text-warm-400 hover:text-red-400 hover:border-red-300 flex items-center gap-1"
+            className="text-sm px-3 py-1 rounded-full border border-red-100 bg-red-50 text-red-500 hover:bg-red-100 hover:border-red-200 flex items-center gap-1"
           >
             <Trash2 size={13} />
             Borrar
@@ -329,56 +334,56 @@ function Editor() {
           <div className="flex flex-wrap gap-2 border-y border-warm-100 py-2">
             <ToolbarButton
               title="Título grande"
-              onClick={() => insertLinePrefix('# ', 'Título grande')}
+              onClick={() => insertLinePrefix("# ", "Título grande")}
             >
               <Heading1 size={14} />
             </ToolbarButton>
 
             <ToolbarButton
               title="Título mediano"
-              onClick={() => insertLinePrefix('## ', 'Título mediano')}
+              onClick={() => insertLinePrefix("## ", "Título mediano")}
             >
               <Heading2 size={14} />
             </ToolbarButton>
 
             <ToolbarButton
               title="Negrita"
-              onClick={() => insertText('**', '**', 'texto en negrita')}
+              onClick={() => insertText("**", "**", "texto en negrita")}
             >
               <Bold size={14} />
             </ToolbarButton>
 
             <ToolbarButton
               title="Lista"
-              onClick={() => insertLinePrefix('- ', 'Elemento de lista')}
+              onClick={() => insertLinePrefix("- ", "Elemento de lista")}
             >
               <List size={14} />
             </ToolbarButton>
 
             <ToolbarButton
               title="Checklist"
-              onClick={() => insertLinePrefix('- [ ] ', 'Tarea pendiente')}
+              onClick={() => insertLinePrefix("- [ ] ", "Tarea pendiente")}
             >
               <CheckSquare size={14} />
             </ToolbarButton>
 
             <ToolbarButton
               title="Lista numerada"
-              onClick={() => insertLinePrefix('1. ', 'Elemento numerado')}
+              onClick={() => insertLinePrefix("1. ", "Elemento numerado")}
             >
               <ListOrdered size={14} />
             </ToolbarButton>
 
             <ToolbarButton
               title="Cita"
-              onClick={() => insertLinePrefix('> ', 'Cita o idea importante')}
+              onClick={() => insertLinePrefix("> ", "Cita o idea importante")}
             >
               <Quote size={14} />
             </ToolbarButton>
 
             <ToolbarButton
               title="Separador"
-              onClick={() => insertLinePrefix('---', '')}
+              onClick={() => insertLinePrefix("---", "")}
             >
               <Minus size={14} />
             </ToolbarButton>
@@ -403,7 +408,7 @@ function Editor() {
 
       <div className="px-6 py-3 border-t border-warm-100 flex justify-between text-xs text-warm-300">
         <span>
-          {wordCount} palabra{wordCount !== 1 ? 's' : ''}
+          {wordCount} palabra{wordCount !== 1 ? "s" : ""}
         </span>
         <span>Markdown básico compatible</span>
       </div>
@@ -424,7 +429,7 @@ function Editor() {
         />
       )}
     </div>
-  )
+  );
 }
 
 function ToolbarButton({ children, title, onClick }) {
@@ -437,7 +442,7 @@ function ToolbarButton({ children, title, onClick }) {
     >
       {children}
     </button>
-  )
+  );
 }
 
 function MarkdownPreview({ content }) {
@@ -446,69 +451,72 @@ function MarkdownPreview({ content }) {
       <p className="text-sm text-warm-300 italic">
         No hay contenido para previsualizar.
       </p>
-    )
+    );
   }
 
-  const lines = content.split('\n')
+  const lines = content.split("\n");
 
   return (
     <div className="space-y-2 text-warm-500 text-sm leading-relaxed">
       {lines.map((line, index) => {
-        const trimmed = line.trim()
+        const trimmed = line.trim();
 
         if (!trimmed) {
-          return <div key={index} className="h-3" />
+          return <div key={index} className="h-3" />;
         }
 
-        if (trimmed === '---') {
-          return <hr key={index} className="border-warm-100 my-4" />
+        if (trimmed === "---") {
+          return <hr key={index} className="border-warm-100 my-4" />;
         }
 
-        if (trimmed.startsWith('# ')) {
+        if (trimmed.startsWith("# ")) {
           return (
             <h1
               key={index}
               className="text-2xl font-semibold text-warm-600 mt-4"
             >
-              {renderInlineMarkdown(trimmed.replace('# ', ''))}
+              {renderInlineMarkdown(trimmed.replace("# ", ""))}
             </h1>
-          )
+          );
         }
 
-        if (trimmed.startsWith('## ')) {
+        if (trimmed.startsWith("## ")) {
           return (
             <h2
               key={index}
               className="text-xl font-semibold text-warm-600 mt-3"
             >
-              {renderInlineMarkdown(trimmed.replace('## ', ''))}
+              {renderInlineMarkdown(trimmed.replace("## ", ""))}
             </h2>
-          )
+          );
         }
 
-        if (trimmed.startsWith('> ')) {
+        if (trimmed.startsWith("> ")) {
           return (
             <blockquote
               key={index}
               className="border-l-4 border-warm-200 pl-3 text-warm-400 italic"
             >
-              {renderInlineMarkdown(trimmed.replace('> ', ''))}
+              {renderInlineMarkdown(trimmed.replace("> ", ""))}
             </blockquote>
-          )
+          );
         }
 
-        if (trimmed.startsWith('- [ ] ')) {
+        if (trimmed.startsWith("- [ ] ")) {
           return (
             <div key={index} className="flex items-start gap-2 ml-1">
               <input type="checkbox" disabled className="mt-1" />
-              <span>{renderInlineMarkdown(trimmed.replace('- [ ] ', ''))}</span>
+              <span>{renderInlineMarkdown(trimmed.replace("- [ ] ", ""))}</span>
             </div>
-          )
+          );
         }
 
-        if (trimmed.startsWith('- [x] ') || trimmed.startsWith('- [X] ')) {
+        if (trimmed.startsWith("- [x] ") || trimmed.startsWith("- [X] ")) {
           return (
-            <div key={index} className="flex items-start gap-2 ml-1 text-warm-300">
+            <div
+              key={index}
+              className="flex items-start gap-2 ml-1 text-warm-300"
+            >
               <input
                 type="checkbox"
                 checked
@@ -517,48 +525,48 @@ function MarkdownPreview({ content }) {
                 className="mt-1"
               />
               <span className="line-through">
-                {renderInlineMarkdown(trimmed.replace(/- \[[xX]\] /, ''))}
+                {renderInlineMarkdown(trimmed.replace(/- \[[xX]\] /, ""))}
               </span>
             </div>
-          )
+          );
         }
 
-        if (trimmed.startsWith('- ')) {
+        if (trimmed.startsWith("- ")) {
           return (
             <ul key={index} className="list-disc ml-5">
-              <li>{renderInlineMarkdown(trimmed.replace('- ', ''))}</li>
+              <li>{renderInlineMarkdown(trimmed.replace("- ", ""))}</li>
             </ul>
-          )
+          );
         }
 
         if (/^\d+\.\s/.test(trimmed)) {
           return (
             <ol key={index} className="list-decimal ml-5">
-              <li>{renderInlineMarkdown(trimmed.replace(/^\d+\.\s/, ''))}</li>
+              <li>{renderInlineMarkdown(trimmed.replace(/^\d+\.\s/, ""))}</li>
             </ol>
-          )
+          );
         }
 
-        return <p key={index}>{renderInlineMarkdown(trimmed)}</p>
+        return <p key={index}>{renderInlineMarkdown(trimmed)}</p>;
       })}
     </div>
-  )
+  );
 }
 
 function renderInlineMarkdown(text) {
-  const parts = text.split(/(\*\*.*?\*\*)/g)
+  const parts = text.split(/(\*\*.*?\*\*)/g);
 
   return parts.map((part, index) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
+    if (part.startsWith("**") && part.endsWith("**")) {
       return (
         <strong key={index} className="font-semibold text-warm-600">
           {part.slice(2, -2)}
         </strong>
-      )
+      );
     }
 
-    return <span key={index}>{part}</span>
-  })
+    return <span key={index}>{part}</span>;
+  });
 }
 
-export default Editor
+export default Editor;
