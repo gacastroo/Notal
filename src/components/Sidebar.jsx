@@ -444,7 +444,7 @@ function Sidebar({
                   <button
                     type="button"
                     onClick={handleToggleMode}
-                    className="hidden md:flex w-8 h-8 items-center justify-center rounded-full bg-cream-200 border border-warm-100 text-warm-400 hover:bg-cream-300 hover:text-warm-600"
+                    className="hidden md:flex w-8 h-8 items-center justify-center rounded-full bg-cream-200 border border-warm-100 text-warm-400 hover:bg-cream-300 hover:text-black-600"
                     title="Contraer barra lateral"
                   >
                     <PanelLeftClose size={15} />
@@ -926,13 +926,13 @@ function NoteItem({
         </div>
 
         {!selectionMode && (
-          <button
-            onClick={handleDeleteClick}
-            className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 mt-0.5 flex-shrink-0 transition-opacity"
-            title="Eliminar nota"
-          >
-            <Trash2 size={14} />
-          </button>
+      <button
+        onClick={handleDeleteClick}
+        className="opacity-100 md:opacity-0 md:group-hover:opacity-100 text-red-400 hover:text-red-600 mt-0.5 flex-shrink-0 transition-opacity w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50"
+        title="Eliminar nota"
+      >
+        <Trash2 size={14} />
+      </button>
         )}
       </div>
 
