@@ -216,7 +216,8 @@ function Editor() {
 
   return (
     <div className="flex-1 flex flex-col bg-cream-50 relative min-w-0">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 px-5 md:px-6 py-3 border-b border-warm-100 bg-cream-50">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pl-16 pr-5 md:px-6 py-3 border-b border-warm-100 bg-cream-50">
+        {" "}
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex flex-wrap gap-2">
             <button
@@ -278,7 +279,6 @@ function Editor() {
             Borrar
           </button>
         </div>
-
         <p className="text-xs text-warm-400 flex items-center gap-1">
           <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block"></span>
           Guardado {formatDate(note.updatedAt)}
