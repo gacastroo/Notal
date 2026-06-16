@@ -216,9 +216,7 @@ function Editor() {
 
   return (
     <div className="flex-1 flex flex-col bg-cream-50 relative min-w-0">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pl-16 pr-5 md:px-6 py-3 border-b border-warm-100 bg-cream-50">
-        {" "}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pl-16 pr-5 md:px-6 pt-6 pb-4 md:pt-5 md:pb-4 border-b border-warm-100 bg-cream-50">        <div className="flex flex-wrap items-center gap-2">
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setIsPreview((current) => !current)}
