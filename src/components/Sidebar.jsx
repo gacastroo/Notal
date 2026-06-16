@@ -18,6 +18,7 @@ import DeleteNotesModal from './DeleteNotesModal'
 import RenameTagModal from './RenameTagModal'
 import ThemeToggle from './ThemeToggle'
 
+
 function Sidebar() {
   const {
     notes,
@@ -283,9 +284,10 @@ function Sidebar() {
       <div className="w-56 min-h-screen bg-cream-100 border-r border-warm-100 flex flex-col">
         <div className="p-4 border-b border-warm-100">
           <p className="text-warm-600 font-medium text-base mb-3">
-            No<span className="text-warm-300">ta</span>la
+            <button onClick={() => setActiveNote(null)}>
+              No<span className="text-warm-300">ta</span>la
+            </button>
           </p>
-
           <button
             onClick={addNote}
             className="w-full bg-warm-300 text-cream-300 text-sm font-medium py-2 px-3 rounded-full flex items-center gap-2 mb-3"
