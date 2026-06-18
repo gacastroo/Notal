@@ -214,13 +214,20 @@ function Editor() {
     exportNoteToPdf(note);
   };
 
-  return (
-    <div className="flex-1 flex flex-col bg-cream-50 relative min-w-0">
-        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pl-16 pr-5 md:px-6 pt-6 pb-4 md:pt-5 md:pb-4 border-b border-warm-100 bg-cream-50">        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex flex-wrap gap-2">
+  const actionButtonBase =
+  "h-9 shrink-0 rounded-full border px-3 text-sm font-medium leading-none flex items-center justify-center gap-1.5 whitespace-nowrap transition-colors";
+
+  const neutralActionButton = `${actionButtonBase} border-warm-100 text-warm-400 hover:text-warm-600 hover:border-warm-200`;
+
+ return (
+  <div className="flex-1 flex flex-col bg-cream-50 relative min-w-0">
+    <div className="border-b border-warm-100 bg-cream-50 pl-20 pr-4 pt-5 pb-4 md:px-6 md:pt-5 md:pb-4">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setIsPreview((current) => !current)}
-              className="text-sm px-3 py-1 rounded-full border border-warm-100 text-warm-400 hover:text-warm-600 hover:border-warm-200 flex items-center gap-1"
+              className={neutralActionButton}
             >
               {isPreview ? <Edit3 size={13} /> : <Eye size={13} />}
               {isPreview ? "Editar" : "Vista"}
@@ -228,7 +235,7 @@ function Editor() {
 
             <button
               onClick={() => togglePin(note.id)}
-              className={`text-sm px-3 py-1 rounded-full border flex items-center gap-1 ${
+              className={`${actionButtonBase} ${
                 note.pinned
                   ? "border-warm-300 text-warm-300"
                   : "border-warm-100 text-warm-400 hover:text-warm-600 hover:border-warm-200"
@@ -240,19 +247,19 @@ function Editor() {
 
             <button
               onClick={handleDuplicateNote}
-              className="text-sm px-3 py-1 rounded-full border border-warm-100 text-warm-400 hover:text-warm-600 hover:border-warm-200 flex items-center gap-1"
+              className={neutralActionButton}
             >
               <Copy size={13} />
               Duplicar
             </button>
           </div>
 
-          <div className="h-5 w-px bg-warm-100 hidden sm:block" />
+          <div className="h-6 w-px shrink-0 bg-warm-100 hidden md:block" />
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-4">
             <button
               onClick={handleExportMarkdown}
-              className="text-sm px-3 py-1 rounded-full border border-warm-100 text-warm-400 hover:text-warm-600 hover:border-warm-200 flex items-center gap-1"
+              className={neutralActionButton}
             >
               <FileText size={13} />
               MD
@@ -260,28 +267,32 @@ function Editor() {
 
             <button
               onClick={handleExportPdf}
-              className="text-sm px-3 py-1 rounded-full border border-warm-100 text-warm-400 hover:text-warm-600 hover:border-warm-200 flex items-center gap-1"
+              className={neutralActionButton}
             >
               <Download size={13} />
               PDF
             </button>
           </div>
 
-          <div className="h-5 w-px bg-warm-100 hidden sm:block" />
+          <div className="h-6 w-px shrink-0 bg-warm-100 hidden md:block" />
 
           <button
             onClick={() => setShowDeleteModal(true)}
-            className="text-sm px-3 py-1 rounded-full border border-red-100 bg-red-50 text-red-500 hover:bg-red-100 hover:border-red-200 flex items-center gap-1"
+            className={`${actionButtonBase} border-red-100 bg-red-50 text-red-500 hover:bg-red-100 hover:border-red-200`}
           >
             <Trash2 size={13} />
             Borrar
           </button>
         </div>
-        <p className="text-xs text-warm-400 flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block"></span>
-          Guardado {formatDate(note.updatedAt)}
+
+        <p className="min-h-9 shrink-0 text-xs text-warm-400 flex items-center gap-1 xl:justify-end">
+          <span className="w-1.5 h-1.5 shrink-0 rounded-full bg-green-400 inline-block"></span>
+          <span className="whitespace-nowrap">
+            Guardado {formatDate(note.updatedAt)}
+          </span>
         </p>
       </div>
+    </div>
 
       <div className="flex-1 flex flex-col p-5 md:p-6 gap-4 overflow-hidden">
         <input
