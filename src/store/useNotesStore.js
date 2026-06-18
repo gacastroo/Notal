@@ -3,11 +3,29 @@ import { persist } from "zustand/middleware";
 
 const generateId = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
+const DEFAULT_SHEET_ROWS = 20;
+const DEFAULT_SHEET_COLS = 8;
+
+const cloneData = (value) => {
+  if (typeof structuredClone === "function") {
+    return structuredClone(value);
+  }
+
+  return JSON.parse(JSON.stringify(value));
+};
+
+const createEmptySheet = () => ({
+  rows: DEFAULT_SHEET_ROWS,
+  cols: DEFAULT_SHEET_COLS,
+  cells: {},
+});
+
 const createEmptyNote = () => {
   const now = new Date().toISOString();
 
   return {
     id: generateId(),
+    type: "text",
     title: "",
     content: "",
     tags: [],
@@ -17,13 +35,56 @@ const createEmptyNote = () => {
   };
 };
 
-const normalizeNote = (note) => {
+const createEmptySheetNote = () => {
   const now = new Date().toISOString();
 
   return {
+    id: generateId(),
+    type: "sheet",
+    title: "Nueva hoja",
+    content: "",
+    sheet: createEmptySheet(),
+    tags: [],
+    pinned: false,
+    createdAt: now,
+    updatedAt: now,
+  };
+};
+
+const normalizeSheet = (sheet) => {
+  const safeRows = Number(sheet?.rows);
+  const safeCols = Number(sheet?.cols);
+  const safeCells =
+    sheet?.cells && typeof sheet.cells === "object" ? sheet.cells : {};
+
+  return {
+    rows:
+      Number.isFinite(safeRows) && safeRows > 0
+        ? safeRows
+        : DEFAULT_SHEET_ROWS,
+    cols:
+      Number.isFinite(safeCols) && safeCols > 0
+        ? safeCols
+        : DEFAULT_SHEET_COLS,
+    cells: Object.fromEntries(
+      Object.entries(safeCells).map(([cellId, value]) => [
+        String(cellId).toUpperCase(),
+        String(value ?? ""),
+      ]),
+    ),
+  };
+};
+
+const normalizeNote = (note) => {
+  const now = new Date().toISOString();
+  const type = note.type === "sheet" ? "sheet" : "text";
+
+  return {
     id: String(note.id || generateId()),
+    type,
     title: typeof note.title === "string" ? note.title : "",
     content: typeof note.content === "string" ? note.content : "",
+    ...(type === "sheet" ? { sheet: normalizeSheet(note.sheet) } : {}),
     tags: Array.isArray(note.tags)
       ? note.tags.filter((tag) => typeof tag === "string")
       : [],
@@ -52,6 +113,17 @@ const useNotesStore = create(
         return newNote.id;
       },
 
+      addSheetNote: () => {
+        const newNote = createEmptySheetNote();
+
+        set((state) => ({
+          notes: [newNote, ...state.notes],
+          activeNoteId: newNote.id,
+        }));
+
+        return newNote.id;
+      },
+
       updateNote: (id, changes) => {
         set((state) => ({
           notes: state.notes.map((note) =>
@@ -63,6 +135,40 @@ const useNotesStore = create(
                 }
               : note,
           ),
+        }));
+      },
+
+      updateSheetCell: (id, cellId, value) => {
+        const cleanCellId = String(cellId || "").trim().toUpperCase();
+
+        if (!cleanCellId) return;
+
+        set((state) => ({
+          notes: state.notes.map((note) => {
+            if (String(note.id) !== String(id) || note.type !== "sheet") {
+              return note;
+            }
+
+            const currentSheet = normalizeSheet(note.sheet);
+            const nextCells = {
+              ...currentSheet.cells,
+            };
+
+            if (String(value ?? "").trim() === "") {
+              delete nextCells[cleanCellId];
+            } else {
+              nextCells[cleanCellId] = String(value);
+            }
+
+            return {
+              ...note,
+              sheet: {
+                ...currentSheet,
+                cells: nextCells,
+              },
+              updatedAt: new Date().toISOString(),
+            };
+          }),
         }));
       },
 
@@ -288,7 +394,7 @@ const useNotesStore = create(
         const now = new Date().toISOString();
 
         const duplicatedNote = {
-          ...note,
+          ...cloneData(note),
           id: generateId(),
           title: note.title ? `${note.title} copia` : "Nota copia",
           createdAt: now,

@@ -21,9 +21,15 @@ import {
 } from "lucide-react";
 import useNotesStore from "../store/useNotesStore";
 import { formatDate } from "../lib/utils";
-import { exportNoteToMarkdown, exportNoteToPdf } from "../lib/exportNotes";
+import {
+  exportNoteToMarkdown,
+  exportNoteToPdf,
+  exportSheetToCsv,
+  exportSheetToXlsx,
+} from "../lib/exportNotes";
 import DeleteNoteModal from "./DeleteNoteModal";
 import RenameTagModal from "./RenameTagModal";
+import SheetEditor from "./SheetEditor";
 
 function Editor() {
   const {
@@ -73,6 +79,8 @@ function Editor() {
   const title = note.title || "";
   const content = note.content || "";
   const tags = Array.isArray(note.tags) ? note.tags : [];
+  const isSheetNote = note.type === "sheet";
+  const filledCellCount = Object.keys(note.sheet?.cells || {}).length;
 
   const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
 
@@ -207,92 +215,106 @@ function Editor() {
   };
 
   const handleExportMarkdown = () => {
+    if (isSheetNote) {
+      exportSheetToCsv(note);
+      return;
+    }
+
     exportNoteToMarkdown(note);
   };
 
   const handleExportPdf = () => {
+    if (isSheetNote) {
+      exportSheetToXlsx(note);
+      return;
+    }
+
     exportNoteToPdf(note);
   };
 
   const actionButtonBase =
-  "h-9 shrink-0 rounded-full border px-3 text-sm font-medium leading-none flex items-center justify-center gap-1.5 whitespace-nowrap transition-colors";
+    "h-9 shrink-0 rounded-full border px-3 text-sm font-medium leading-none flex items-center justify-center gap-1.5 whitespace-nowrap transition-colors";
 
   const neutralActionButton = `${actionButtonBase} border-warm-100 text-warm-400 hover:text-warm-600 hover:border-warm-200`;
 
- return (
-  <div className="flex-1 flex flex-col bg-cream-50 relative min-w-0">
-    <div className="border-b border-warm-100 bg-cream-50 pl-20 pr-4 pt-5 pb-4 md:px-6 md:pt-5 md:pb-4">
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => setIsPreview((current) => !current)}
-              className={neutralActionButton}
-            >
-              {isPreview ? <Edit3 size={13} /> : <Eye size={13} />}
-              {isPreview ? "Editar" : "Vista"}
-            </button>
+  return (
+    <div className="flex-1 flex flex-col bg-cream-50 relative min-w-0">
+      <div className="border-b border-warm-100 bg-cream-50 pl-20 pr-4 pt-5 pb-4 md:px-6 md:pt-5 md:pb-4">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {!isSheetNote && (
+                <button
+                  onClick={() => setIsPreview((current) => !current)}
+                  className={neutralActionButton}
+                >
+                  {isPreview ? <Edit3 size={13} /> : <Eye size={13} />}
+                  {isPreview ? "Editar" : "Vista"}
+                </button>
+              )}
+
+              <button
+                onClick={() => togglePin(note.id)}
+                className={`${actionButtonBase} ${
+                  note.pinned
+                    ? "border-warm-300 text-warm-300"
+                    : "border-warm-100 text-warm-400 hover:text-warm-600 hover:border-warm-200"
+                }`}
+              >
+                {note.pinned ? <PinOff size={13} /> : <Pin size={13} />}
+                {note.pinned ? "Fijada" : "Fijar"}
+              </button>
+
+              <button
+                onClick={handleDuplicateNote}
+                className={neutralActionButton}
+              >
+                <Copy size={13} />
+                Duplicar
+              </button>
+            </div>
+
+            <div className="h-6 w-px shrink-0 bg-warm-100 hidden md:block" />
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={handleExportMarkdown}
+                className={neutralActionButton}
+                title={isSheetNote ? "Exportar hoja como CSV" : "Exportar nota como Markdown"}
+              >
+                <FileText size={13} />
+                {isSheetNote ? "CSV" : "MD"}
+              </button>
+
+              <button
+                onClick={handleExportPdf}
+                className={neutralActionButton}
+                title={isSheetNote ? "Exportar hoja como Excel" : "Exportar nota como PDF"}
+              >
+                <Download size={13} />
+                {isSheetNote ? "XLSX" : "PDF"}
+              </button>
+            </div>
+
+            <div className="h-6 w-px shrink-0 bg-warm-100 hidden md:block" />
 
             <button
-              onClick={() => togglePin(note.id)}
-              className={`${actionButtonBase} ${
-                note.pinned
-                  ? "border-warm-300 text-warm-300"
-                  : "border-warm-100 text-warm-400 hover:text-warm-600 hover:border-warm-200"
-              }`}
+              onClick={() => setShowDeleteModal(true)}
+              className={`${actionButtonBase} border-red-100 bg-red-50 text-red-500 hover:bg-red-100 hover:border-red-200`}
             >
-              {note.pinned ? <PinOff size={13} /> : <Pin size={13} />}
-              {note.pinned ? "Fijada" : "Fijar"}
-            </button>
-
-            <button
-              onClick={handleDuplicateNote}
-              className={neutralActionButton}
-            >
-              <Copy size={13} />
-              Duplicar
+              <Trash2 size={13} />
+              Borrar
             </button>
           </div>
 
-          <div className="h-6 w-px shrink-0 bg-warm-100 hidden md:block" />
-
-          <div className="flex flex-wrap items-center gap-4">
-            <button
-              onClick={handleExportMarkdown}
-              className={neutralActionButton}
-            >
-              <FileText size={13} />
-              MD
-            </button>
-
-            <button
-              onClick={handleExportPdf}
-              className={neutralActionButton}
-            >
-              <Download size={13} />
-              PDF
-            </button>
-          </div>
-
-          <div className="h-6 w-px shrink-0 bg-warm-100 hidden md:block" />
-
-          <button
-            onClick={() => setShowDeleteModal(true)}
-            className={`${actionButtonBase} border-red-100 bg-red-50 text-red-500 hover:bg-red-100 hover:border-red-200`}
-          >
-            <Trash2 size={13} />
-            Borrar
-          </button>
+          <p className="min-h-9 shrink-0 text-xs text-warm-400 flex items-center gap-1 xl:justify-end">
+            <span className="w-1.5 h-1.5 shrink-0 rounded-full bg-green-400 inline-block"></span>
+            <span className="whitespace-nowrap">
+              Guardado {formatDate(note.updatedAt)}
+            </span>
+          </p>
         </div>
-
-        <p className="min-h-9 shrink-0 text-xs text-warm-400 flex items-center gap-1 xl:justify-end">
-          <span className="w-1.5 h-1.5 shrink-0 rounded-full bg-green-400 inline-block"></span>
-          <span className="whitespace-nowrap">
-            Guardado {formatDate(note.updatedAt)}
-          </span>
-        </p>
       </div>
-    </div>
 
       <div className="flex-1 flex flex-col p-5 md:p-6 gap-4 overflow-hidden">
         <input
@@ -339,7 +361,7 @@ function Editor() {
           />
         </div>
 
-        {!isPreview && (
+        {!isSheetNote && !isPreview && (
           <div className="border-y border-warm-100 py-3 space-y-2">
             <p className="text-[11px] uppercase tracking-wide text-warm-300 font-medium">
               Formato
@@ -413,7 +435,9 @@ function Editor() {
           </div>
         )}
 
-        {isPreview ? (
+        {isSheetNote ? (
+          <SheetEditor note={note} />
+        ) : isPreview ? (
           <div className="flex-1 overflow-y-auto bg-cream-100 border border-warm-100 rounded-2xl p-5">
             <MarkdownPreview content={content} />
           </div>
@@ -430,10 +454,22 @@ function Editor() {
       </div>
 
       <div className="px-6 py-3 border-t border-warm-100 flex justify-between text-xs text-warm-300">
-        <span>
-          {wordCount} palabra{wordCount !== 1 ? "s" : ""}
-        </span>
-        <span>Markdown básico compatible</span>
+        {isSheetNote ? (
+          <>
+            <span>
+              {filledCellCount} celda{filledCellCount !== 1 ? "s" : ""} con
+              contenido
+            </span>
+            <span>Fórmulas básicas compatibles</span>
+          </>
+        ) : (
+          <>
+            <span>
+              {wordCount} palabra{wordCount !== 1 ? "s" : ""}
+            </span>
+            <span>Markdown básico compatible</span>
+          </>
+        )}
       </div>
 
       {showDeleteModal && (
